@@ -1,9 +1,15 @@
 let express = require('express');
 let path = require('path');
 let http = require('http');
+let bodyParser = require('body-parser');
 
 let app = express();
 let articles = require('./routes/articles.js');
+
+app.use(bodyParser.urlencoded({
+    extended: true
+}));
+app.use(bodyParser.json());
 
 app.use('/api/articles/', articles);
 
