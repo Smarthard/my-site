@@ -3,9 +3,9 @@ let path = require('path');
 let http = require('http');
 
 let app = express();
-let api = require('./api');
+let articles = require('./routes/articles.js');
 
-app.use('/', api);
+app.use('/api/articles/', articles);
 
 app.all('*', (req, res) => {
     res.status(404).send({});
