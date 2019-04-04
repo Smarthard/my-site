@@ -59,7 +59,7 @@ router.put('/:id', async (req, res) => {
    }).catch(err => {
        console.error(err);
 
-       res.status(400).send();
+       res.status(500).send();
    });
 });
 
@@ -73,7 +73,7 @@ router.delete('/:id', async (req, res) => {
     if (deleted) {
         res.status(200).send({success: true, message: "article with id " + id + " removed"});
     } else {
-        res.status(500).send({success: false, message: "wrong article id " + id});
+        res.status(400).send({success: false, message: "wrong article id " + id});
     }
 });
 
