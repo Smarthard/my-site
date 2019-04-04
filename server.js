@@ -1,11 +1,13 @@
 let express = require('express');
 let path = require('path');
 let http = require('http');
+let cors = require('cors');
 let bodyParser = require('body-parser');
 
 let app = express();
 let articles = require('./routes/articles.js');
 
+app.use(cors());
 app.use(bodyParser.urlencoded({
     extended: true
 }));
