@@ -23,5 +23,5 @@ const port = process.env.PORT || '3001';
 app.set('port', port);
 
 let server = http.createServer(app);
-server.listen(port, () => console.log("Backed started started at " + port));
+server.listen(port, () => console.log("Backend started started at " + port));
 
