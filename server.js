@@ -1,8 +1,16 @@
 let express = require('express');
-let path = require('path');
+let fs = require('fs');
 let http = require('http');
+let https = require('https');
 let cors = require('cors');
 let bodyParser = require('body-parser');
+
+const privateKey = fs.readFileSync('../serts/server.key');
+const certificate = fs.readFileSync('../serts/server.crt');
+const credentials = {key: privateKey, cert: certificate};
+
+const httpPort = process.env.HTTP_PORT || '3001';
+const httpsPort = process.env.HTTPS_PORT || '3443';
 
 let app = express();
 let articles = require('./routes/articles.js');
@@ -19,9 +27,8 @@ app.all('*', (req, res) => {
     res.status(404).send({});
 });
 
-const port = process.env.PORT || '3001';
-app.set('port', port);
+let httpServer = http.createServer(app);
+let httpsServer = https.createServer(credentials, app);
 
-let server = http.createServer(app);
-server.listen(port, () => console.log("Backend started started at " + port));
-
+httpServer.listen(httpPort);
+httpsServer.listen(httpsPort);
