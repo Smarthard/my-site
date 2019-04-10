@@ -25,10 +25,17 @@ router.post('/', async (req, res) => {
 /* READ */
 
 router.get('/', async (req, res) => {
-    const offset = req.query.offset || 0;
-    const limit = req.query.limit || 10;
+    const offset = req.query.offset;
+    const limit = req.query.limit;
+    let articles;
 
-    let articles = await Article.findAll({where: {}, limit: limit, offset: offset});
+    if (limit && offset) {
+        articles = await Article.findAll({where: {}, limit: limit, offset: offset});
+    } else if (offset) {
+        articles = await Article.findAll({where: {}, offset: offset});
+    } else {
+        articles = await Article.findAll();
+    }
 
     if (articles) {
         res.status(200).send(articles);
@@ -39,8 +46,13 @@ router.get('/', async (req, res) => {
 
 router.get('/:id', async (req, res) => {
     const id = req.params.id;
+    let article;
 
-    let article = await Article.findOne({where: {id: id}});
+    if (id && !isNaN(id)) {
+        article = await Article.findOne({where: {id: id}});
+    } else {
+        res.status(400).send({message: `wrong value for parameter id: ${id}`})
+    }
 
     if (article) {
         res.status(200).send(article);
@@ -54,27 +66,46 @@ router.get('/:id', async (req, res) => {
 router.put('/:id', async (req, res) => {
    const id = req.params.id;
 
-   Article.update(req.body, {where: {id: id}}).then(value => {
-       res.status(200).send();
-   }).catch(err => {
-       console.error(err);
+   if (id && !isNaN(id)) {
+       Article.update(req.body, {where: {id: id}}).then(value => {
+           res.status(200).send();
+       }).catch(err => {
+           console.error(err);
 
-       res.status(500).send();
-   });
+           res.status(500).send();
+       });
+   } else {
+       res.status(400).send({message: `wrong value for parameter id: ${id}`})
+   }
 });
 
 /* DELETE */
 
 router.delete('/:id', async (req, res) => {
     const id = req.params.id;
+    let deleted;
 
-    let deleted = await Article.destroy({where: {id: id}});
+    if (id && !isNaN(id)) {
+        deleted = await Article.destroy({where: {id: id}});
+    } else {
+        res.status(400).send({message: `wrong value for parameter id: ${id}`})
+    }
 
     if (deleted) {
         res.status(200).send({success: true, message: "article with id " + id + " removed"});
     } else {
         res.status(400).send({success: false, message: "wrong article id " + id});
     }
+});
+
+/* OTHER */
+
+router.post('/count', (req, res) => {
+    Article.findAndCountAll().then(value => {
+        res.status(200).send({count: value.count});
+    }).catch(err => {
+        res.status(500).send({count: 0});
+    });
 });
 
 module.exports = router;
