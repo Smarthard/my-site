@@ -5,8 +5,8 @@ let https = require('https');
 let cors = require('cors');
 let bodyParser = require('body-parser');
 
-const privateKey = fs.readFileSync('../serts/server.key');
-const certificate = fs.readFileSync('../serts/server.crt');
+const privateKey = fs.readFileSync('../certs/server.key');
+const certificate = fs.readFileSync('../certs/server.crt');
 const credentials = {key: privateKey, cert: certificate};
 
 const httpPort = process.env.HTTP_PORT || '3001';
