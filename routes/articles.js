@@ -31,8 +31,6 @@ router.get('/', async (req, res) => {
 
     if (limit && offset) {
         articles = await Article.findAll({where: {}, limit: limit, offset: offset});
-    } else if (offset) {
-        articles = await Article.findAll({where: {}, offset: offset});
     } else {
         articles = await Article.findAll();
     }
@@ -40,7 +38,7 @@ router.get('/', async (req, res) => {
     if (articles) {
         res.status(200).send(articles);
     } else {
-        res.status(404).send();
+        res.status(500).send([]);
     }
 });
 
