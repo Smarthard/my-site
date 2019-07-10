@@ -28,9 +28,27 @@ router.get('/', async (req, res) => {
 
 router.get('/q', async (req, res) => {
     const title = req.query.title;
+    const episode = req.query.ep;
+
     let article;
 
-    if (title) {
+    if (title && episode) {
+        article = await ShikiVideos.findAll({
+            where: {
+                [Op.and]: [
+                    {
+                        [Op.or]: [
+                            {anime_russian: {[Op.like]: title}},
+                            {anime_english: {[Op.like]: title}}
+                        ]
+                    },
+                    {
+                        episode: episode
+                    }
+                ]
+            }
+        });
+    } else if (title) {
         article = await ShikiVideos.findAll({
             where: {
                 [Op.or]: [
