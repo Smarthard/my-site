@@ -10,7 +10,7 @@ let router = express.Router();
 
 router.get('/search', async (req, res) => {
     const offset = req.query.offset || 0;
-    const limit = req.query.limit || 10;
+    let limit = req.query.limit || 10;
 
     const title = req.query.title;
     const episode = req.query.episode;
@@ -38,6 +38,7 @@ router.get('/search', async (req, res) => {
     if (language) sql_dyn_where.language = language;
     if (uploader) sql_dyn_where.uploader = uploader;
     if (quality) sql_dyn_where.quality = quality;
+    if (limit) `${limit}`.toLocaleUpperCase() === 'ALL' ? limit = null : limit;
 
 
     let article = await ShikiVideos.findAll({
@@ -58,7 +59,7 @@ router.get('/search', async (req, res) => {
 router.get('/:anime_id', async (req, res) => {
     const anime_id = req.params.anime_id;
     const offset = req.query.offset || 0;
-    const limit = req.query.limit || 10;
+    let limit = req.query.limit || 10;
 
     const episode = req.query.episode;
     const quality = req.query.quality;
@@ -76,6 +77,7 @@ router.get('/:anime_id', async (req, res) => {
     if (kind) sql_dyn_where.kind = kind;
     if (language) sql_dyn_where.language = language;
     if (uploader) sql_dyn_where.uploader = uploader;
+    if (limit) `${limit}`.toLocaleUpperCase() === 'ALL' ? limit = null : limit;
 
     if (!isNaN(anime_id)) {
         articles = await ShikiVideos.findAll({
