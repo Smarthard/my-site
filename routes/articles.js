@@ -1,12 +1,13 @@
 let Article  = require('../models').Article;
 let express = require('express');
 let router = express.Router();
+let middleware = require("../auth/middleware");
 
 /* path /api/articles/ */
 
 /* CREATE */
 
-router.post('/', async (req, res) => {
+router.post('/', middleware.allowFor('database:articles'), async (req, res) => {
     const entity = Article.build(req.body);
 
     entity.save().then(value => {
@@ -61,7 +62,7 @@ router.get('/:id', async (req, res) => {
 
 /* UPDATE */
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', middleware.allowFor('database:articles'), async (req, res) => {
    const id = req.params.id;
 
    if (id && !isNaN(id)) {
@@ -79,7 +80,7 @@ router.put('/:id', async (req, res) => {
 
 /* DELETE */
 
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', middleware.allowFor('database:articles'), async (req, res) => {
     const id = req.params.id;
     let deleted;
 
