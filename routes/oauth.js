@@ -5,7 +5,7 @@ let shortid = require('shortid');
 let TokenGenerator = require('uuid-token-generator');
 
 let {AUTH_CODE_LIFE, ACCESS_TOKEN_LIFE, REFRESH_TOKEN_LIFE} = require('../config/auth');
-let allowFor = require("../auth/middleware").allowFor;
+let middleware = require("../auth/middleware");
 
 let tokens = new TokenGenerator(TokenGenerator.BASE62, 256);
 let Scope = require('../auth/Scope').Scope;
@@ -26,9 +26,59 @@ function getHostName(url) {
     }
 }
 
+function generateTokens(client_id, user_id, scopes, optional) {
+    return new Promise((resolve, reject) => {
+        const access_token = tokens.generate();
+        const refresh_token = tokens.generate();
+
+        // optional operations may be executed
+        let opt_operations = {
+            delete_old_tokens: optional.delete_old_tokens
+                ? () => AccessTokens.destroy({where: {user_id: user_id, client_id: client_id}})
+                : () => Promise.resolve(),
+
+            delete_auth_code: optional.delete_auth_code
+                ? () => AuthCodes.destroy({ where: { auth_code: optional.code, client_id: client_id }})
+                : () => Promise.resolve()
+        };
+
+        if (!client_id || !user_id || !scopes)
+            reject(new Error('Missing required parameters'));
+
+        Promise.all([
+            opt_operations.delete_old_tokens(),
+            // Don't destroy a refresh token if you'd like to track token hijacking
+            AccessTokens.create({
+                token: access_token,
+                user_id: user_id,
+                client_id: client_id,
+                scopes: scopes,
+                expires: Date.now() + ACCESS_TOKEN_LIFE
+            }),
+            RefreshTokens.create({
+                token: refresh_token,
+                user_id: user_id,
+                client_id: client_id,
+                scopes: scopes,
+                expires: Date.now() + REFRESH_TOKEN_LIFE
+            }),
+            opt_operations.delete_auth_code()
+        ]).then(([d_access, access, refresh, d_auth_code]) => {
+            let tokens_response = {
+                access_token: access.token,
+                refresh_token: refresh.token,
+                exprires: access.expires,
+                token_type: 'Bearer'
+            };
+
+            resolve(tokens_response);
+        }).catch(err => reject(err));
+    })
+}
+
 /* path /oauth/ */
 
-router.post('/register', allowFor('user', 'admin'), (req, res, next) => {
+router.post('/register', middleware.allowFor('user', 'admin'), (req, res, next) => {
     let client_name = req.body.client_name;
     let redirect_uri = req.body.redirect_uri;
     let scopes = req.body.scopes || 'default';
@@ -153,7 +203,7 @@ router.all('/token', (req, res, next) => {
             AuthCodes.findOne({ where: { auth_code: code, client_id: client_id }}),
             Clients.findOne({ where: { client_id: client_id }})
         ])
-            .then(([auth_code, client]) => {
+            .then(async ([auth_code, client]) => {
                 if (!auth_code)
                     return next(new Error('Invalid authorization code'));
 
@@ -168,41 +218,16 @@ router.all('/token', (req, res, next) => {
                 if (getHostName(redirect_uri) !== getHostName(client.redirect_uri))
                     return next(new Error('Redirect uri mismatch'));
 
-                const access_token = tokens.generate();
-                const refresh_token = tokens.generate();
-                const user_id = auth_code.user_id;
-                const scopes = auth_code.scopes;
+                try {
+                    const user_id = auth_code.user_id;
+                    const scopes = auth_code.scopes;
+                    const options = { delete_auth_code: true, code: code };
+                    const tokens = await generateTokens(client_id, user_id, scopes, options);
 
-                Promise.all([
-                    AccessTokens.create({
-                        token: access_token,
-                        user_id: user_id,
-                        client_id: client_id,
-                        scopes: scopes,
-                        expires: Date.now() + ACCESS_TOKEN_LIFE
-                    }),
-                    RefreshTokens.create({
-                        token: refresh_token,
-                        user_id: user_id,
-                        client_id: client_id,
-                        scopes: scopes,
-                        expires: Date.now() + REFRESH_TOKEN_LIFE
-                    }),
-                    AuthCodes.destroy({ where: { auth_code: code, client_id: client_id }})
-                ]).then(([access, refresh]) => {
-                    let tokens_response = {
-                        access_token: access.token,
-                        refresh_token: refresh.token,
-                        scopes: scopes,
-                        exprires: access.expires,
-                        token_type: 'Bearer'
-                    };
-
-                    return res.status(200).send(tokens_response);
-                }).catch(err => {
-                    console.error(err);
-                    return next(new Error('Internal server error'));
-                })
+                    return res.status(200).send(tokens);
+                } catch (err) {
+                    return next(err);
+                }
             }).catch(err => {
                 console.error(err);
                 return next(new Error('Internal server error'));
@@ -214,50 +239,23 @@ router.all('/token', (req, res, next) => {
         Promise.all([
             Clients.findOne({where: {client_id: client_id, client_secret: client_secret}}),
             RefreshTokens.findOne({where: {token: refresh}}),
-        ]).then(([client, refresh_t]) => {
+        ]).then(async ([client, refresh_t]) => {
             if (!client || !refresh_t || refresh_t.client_id !== client.client_id)
                 return next(new Error('Invalid request'));
 
             if (Date.now() > refresh_t.expires)
                 return next(new Error('Refresh Token expired'));
 
-            const access_token = tokens.generate();
-            const refresh_token = tokens.generate();
-            const user_id = refresh_t.user_id;
-            const client_id = refresh_t.client_id;
-            const scopes = refresh_t.scopes;
+            try {
+                const user_id = refresh_t.user_id;
+                const client_id = refresh_t.client_id;
+                const scopes = refresh_t.scopes;
+                const tokens = await generateTokens(client_id, user_id, scopes, { delete_old_tokens: true });
 
-            Promise.all([
-                AccessTokens.destroy({where: {user_id: user_id, client_id: client_id}}),
-                // Don't destroy a refresh token if you'd like to track token hijacking
-                AccessTokens.create({
-                    token: access_token,
-                    user_id: user_id,
-                    client_id: client_id,
-                    scopes: scopes,
-                    expires: Date.now() + ACCESS_TOKEN_LIFE
-                }),
-                RefreshTokens.create({
-                    token: refresh_token,
-                    user_id: user_id,
-                    client_id: client_id,
-                    scopes: scopes,
-                    expires: Date.now() + REFRESH_TOKEN_LIFE
-                })
-            ]).then(([d_access, access, refresh]) => {
-                let tokens_response = {
-                    access_token: access.token,
-                    refresh_token: refresh.token,
-                    exprires: access.expires,
-                    token_type: 'Bearer'
-                };
-
-                return res.status(200).send(tokens_response);
-            }).catch(err => {
-                console.error(err);
-
-                return next(new Error('Internal server error'));
-            })
+                return res.status(200).send(tokens);
+            } catch (err) {
+                return next(err);
+            }
         }).catch(err => {
             console.error(err);
 
