@@ -18,7 +18,7 @@ let users = require('./routes/users');
 let auth = require('./routes/authorization');
 let oauth = require('./routes/oauth');
 
-const { SESSION_SECRET, PRODUCTION} = require('./config/auth');
+const { SESSION_SECRET, PRODUCTION } = require('./config/auth');
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -43,7 +43,9 @@ app.use(cors({
     origin: PRODUCTION ? /(https:\/\/)?((www.)?smarthard.net|shikimori.(org|one))/i : /(127.0.0.1|localhost):4200/i ,
     credentials: true
 }));
-app.use(helmet());
+app.use(helmet({
+    hsts: false // disabled because of nginx configuration
+}));
 app.use((req, res, next) => middleware.destroyInvalidCookies(req, res, next));
 
 app.use(express.static(path.join(__dirname, 'views')));
