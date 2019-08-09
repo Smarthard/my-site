@@ -22,6 +22,20 @@ const { SESSION_SECRET, PRODUCTION } = require('./config/auth');
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+if (PRODUCTION) {
+    app.use((err, req, res, next) => {
+        res.status(err.status || 500).send({ message: err.toString() });
+    });
+    app.use(morgan('combined'));
+} else {
+    app.use((err, req, res, next) => {
+        res.status(err.status || 500).send({
+            message: err.toString(),
+            error: err
+        });
+    });
+    app.use(morgan('dev'));
+}
 app.use(session({
     key: 'user_sid',
     secret: SESSION_SECRET,
@@ -61,21 +75,6 @@ app.use(/^\/api\/?$/i, (req, res) => {
 app.all('*', (req, res) => {
     res.status(404).send({});
 });
-
-if (PRODUCTION) {
-    app.use((err, req, res, next) => {
-        res.status(err.status || 500).send({ message: err.toString() });
-    });
-} else {
-    app.use((err, req, res, next) => {
-        res.status(err.status || 500).send({
-            message: err.toString(),
-            error: err
-        });
-    });
-
-    app.use(morgan('dev'));
-}
 
 let httpServer = http.createServer(app);
 
