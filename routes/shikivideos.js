@@ -1,10 +1,63 @@
 
 let Op = require('sequelize').Op;
-let ShikiVideos = require('../models').ShikiVideos;
 let express = require('express');
 let router = express.Router();
 
+let allowFor = require('../auth/middleware').allowFor;
+
+let ShikiVideos = require('../models').ShikiVideos;
+
 /* path /api/shikivideos/ */
+
+/* CREATE */
+
+router.post('/', allowFor('database:shikivideos', 'database:shikivideos_create'), async (req, res, next) => {
+    const url = req.query.url;
+    const anime_id = req.query.anime_id;
+    const anime_english = req.query.anime_english || "";
+    const anime_russian = req.query.anime_russian || "";
+    const episode = req.query.episode;
+    const kind = req.query.kind;
+    const language = req.query.language;
+    const quality = req.query.quality || null;
+    const author = req.query.author || null;
+    const uploader = req.query.uploader;
+
+    console.log(req.query);
+
+    if (!url || !anime_id || !episode || !kind || !language || !uploader)
+        next(new Error('Missing required parameters'));
+
+    try {
+        let existing_url = await ShikiVideos.findOne({ where: { url: url }});
+
+        if (existing_url)
+            next(new Error('Record with this url already exists'));
+
+        ShikiVideos.create({
+            url: url,
+            anime_id: anime_id,
+            anime_english: anime_english,
+            anime_russian: anime_russian,
+            episode: episode,
+            kind: kind,
+            language: language,
+            quality: quality,
+            author: author,
+            uploader: uploader.username
+        })
+            .then(record => {
+                if (!record)
+                    throw new Error('Cannot insert new record');
+
+                res.status(201).send(record);
+            })
+    } catch (err) {
+        console.error(err);
+
+        next(err);
+    }
+});
 
 /* READ */
 
@@ -54,6 +107,29 @@ router.get('/search', async (req, res) => {
     } else {
         res.status(500);
     }
+});
+
+router.get('/unique', (req, res, next) => {
+    const AVAILABLE_COLUMNS = ['anime_id', 'anime_russian', 'anime_english', 'author'];
+    const column = req.query.column;
+    const anime_id = req.query.anime_id || null;
+
+    if (!column || !AVAILABLE_COLUMNS.includes(`${column}`.toString().toLowerCase()))
+        next(new Error('Requested column is not available'));
+
+    let search_options = {
+        attributes: [column],
+        group: [column]
+    };
+
+    if (anime_id)
+        search_options.where = { anime_id: anime_id };
+
+    ShikiVideos.findAll(search_options)
+        .then(columns => {
+            res.status(200).send(columns);
+        })
+        .catch(err => next(err));
 });
 
 router.get('/:anime_id', async (req, res) => {
