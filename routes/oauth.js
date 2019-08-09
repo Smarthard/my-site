@@ -31,14 +31,28 @@ function generateTokens(client_id, user_id, scopes, optional) {
         const access_token = tokens.generate();
         const refresh_token = tokens.generate();
 
+        let opt = optional || {};
+
+        scopes = Scope.normilize(scopes);
+
         // optional operations may be executed
         let opt_operations = {
-            delete_old_tokens: optional.delete_old_tokens
+            delete_old_tokens: !!opt.delete_old_tokens
                 ? () => AccessTokens.destroy({where: {user_id: user_id, client_id: client_id}})
                 : () => Promise.resolve(),
 
-            delete_auth_code: optional.delete_auth_code
-                ? () => AuthCodes.destroy({ where: { auth_code: optional.code, client_id: client_id }})
+            delete_auth_code: !!opt.delete_auth_code
+                ? () => AuthCodes.destroy({ where: { auth_code: opt.code, client_id: client_id }})
+                : () => Promise.resolve(),
+
+            refresh_token: !!opt.refresh_token
+                ? () => RefreshTokens.create({
+                        token: refresh_token,
+                        user_id: user_id,
+                        client_id: client_id,
+                        scopes: scopes,
+                        expires: Date.now() + REFRESH_TOKEN_LIFE
+                    })
                 : () => Promise.resolve()
         };
 
@@ -55,21 +69,17 @@ function generateTokens(client_id, user_id, scopes, optional) {
                 scopes: scopes,
                 expires: Date.now() + ACCESS_TOKEN_LIFE
             }),
-            RefreshTokens.create({
-                token: refresh_token,
-                user_id: user_id,
-                client_id: client_id,
-                scopes: scopes,
-                expires: Date.now() + REFRESH_TOKEN_LIFE
-            }),
+            opt_operations.refresh_token(),
             opt_operations.delete_auth_code()
         ]).then(([d_access, access, refresh, d_auth_code]) => {
             let tokens_response = {
                 access_token: access.token,
-                refresh_token: refresh.token,
                 exprires: access.expires,
                 token_type: 'Bearer'
             };
+
+            if (!!opt.refresh_token)
+                tokens_response.refresh_token = refresh.token;
 
             resolve(tokens_response);
         }).catch(err => reject(err));
@@ -195,6 +205,7 @@ router.all('/token', (req, res, next) => {
     const client_secret = req.query.client_secret;
     const redirect_uri = req.query.redirect_uri || '';
     const code = req.query.code;
+    const scopes = req.query.scopes || ["default"];
     const refresh = req.query.refresh_token;
 
     /* get the Access and Refresh Tokens from Auhorization Code */
@@ -221,7 +232,7 @@ router.all('/token', (req, res, next) => {
                 try {
                     const user_id = auth_code.user_id;
                     const scopes = auth_code.scopes;
-                    const options = { delete_auth_code: true, code: code };
+                    const options = { refresh_token: true, delete_auth_code: true, code: code };
                     const tokens = await generateTokens(client_id, user_id, scopes, options);
 
                     return res.status(200).send(tokens);
@@ -250,7 +261,8 @@ router.all('/token', (req, res, next) => {
                 const user_id = refresh_t.user_id;
                 const client_id = refresh_t.client_id;
                 const scopes = refresh_t.scopes;
-                const tokens = await generateTokens(client_id, user_id, scopes, { delete_old_tokens: true });
+                const options = { refresh_token: true, delete_old_tokens: true };
+                const tokens = await generateTokens(client_id, user_id, scopes, options);
 
                 return res.status(200).send(tokens);
             } catch (err) {
@@ -261,6 +273,33 @@ router.all('/token', (req, res, next) => {
 
             return next(new Error('Internal server error'));
         })
+    }
+
+    if (grant_type === 'client_credentials') {
+        Clients.findOne({ where: { client_id: client_id, client_secret: client_secret }})
+            .then(async (client) => {
+                if (!client)
+                    return next('Invalid client credentials');
+
+                if (!client.is_trusted)
+                    return next('This client is not trusted');
+
+                try {
+                    const user_id = client.user_id;
+                    const tokens = await generateTokens(client_id, user_id, scopes);
+
+                    return res.status(200).send(tokens);
+                } catch (err) {
+                    console.error(err);
+
+                    return next(err);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+
+                return next(new Error('Internal server error'));
+            })
     }
 });
 
