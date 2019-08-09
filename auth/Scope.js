@@ -3,6 +3,7 @@ const ALL_SCOPES = [
     'banned',
     'database',
         'database:shikivideos',
+        'database:shikivideos_create',
         'database:articles',
     'default',
     'user',
