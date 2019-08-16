@@ -63,8 +63,8 @@ router.get('/search', async (req, res) => {
     const offset = req.query.offset || 0;
     let limit = req.query.limit || 10;
 
-    const title = req.query.title;
-    const episode = req.query.episode;
+    const title = req.query.title || "";
+    const episode = parseInt(req.query.episode) || 0;
     const quality = req.query.quality;
     const author = req.query.author;
     const kind = req.query.kind;
