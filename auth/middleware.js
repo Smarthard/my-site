@@ -18,11 +18,11 @@ function destroyInvalidCookies(req, res, next) {
  */
 function allowFor(...scopes) {
     return function(req, res, next) {
-        const authorization = req.headers.authorization;
+        const authorization = req.headers.authorization || "";
 
         // request with session cookies
         if (req.session.user) {
-            next();
+            return next();
         }
 
         // request with bearer token
@@ -38,11 +38,11 @@ function allowFor(...scopes) {
                         return next(new Error('Token expired'));
 
                     // TODO: optimize this
-                    let isAllowed = true;
+                    let isAllowed = false;
                     access.scopes.forEach(scope => {
                         let scope_obj = new Scope(scope);
 
-                        scopes.forEach(scp => isAllowed &= scope_obj.isAllowedFor(scp))
+                        scopes.forEach(scp => isAllowed |= scope_obj.isAllowedFor(scp))
                     });
 
                     if (isAllowed)

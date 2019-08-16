@@ -174,7 +174,7 @@ router.post('/authorize', (req, res, next) => {
 
     Users.findOne({ where: { login: login }})
         .then( async user => {
-            if (!!user && await middleware.validateUser(user, password)) {
+            if (!!user && !user.banned && await middleware.validateUser(user, password)) {
                 AuthCodes.create({
                     client_id: client_id,
                     user_id: user.id,

@@ -22,6 +22,7 @@ const { SESSION_SECRET, PRODUCTION } = require('./config/auth');
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.set('trust proxy', true);
 if (PRODUCTION) {
     app.use((err, req, res, next) => {
         res.status(err.status || 500).send({ message: err.toString() });
@@ -41,9 +42,10 @@ app.use(session({
     secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
+    proxy: true,
     cookie: {
         httpOnly: true,
-        secure: PRODUCTION,
+        //secure: PRODUCTION, // removed because of nginx configuration
         sameSite: 'lax',
         expires: 24 * 60 * 60 * 1000
     },
@@ -53,10 +55,11 @@ app.use(session({
         conString: process.env.DATABASE_URL || 'pg://postgres@127.0.0.1:5432/myhutdb'
     })
 }));
-app.use(cors({
-    origin: PRODUCTION ? /(https:\/\/)?((www.)?smarthard.net|shikimori.(org|one))/i : /(127.0.0.1|localhost):4200/i ,
-    credentials: true
-}));
+app.use(cors());
+// app.use(cors({
+//     origin: PRODUCTION ? /(https:\/\/)?((www.)?smarthard.net|shikimori.(org|one))/i : /(127.0.0.1|localhost):4200/i ,
+//     credentials: true
+// }));
 app.use(helmet({
     hsts: false // disabled because of nginx configuration
 }));

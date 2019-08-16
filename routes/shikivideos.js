@@ -23,16 +23,14 @@ router.post('/', allowFor('database:shikivideos', 'database:shikivideos_create')
     const author = req.query.author || null;
     const uploader = req.query.uploader;
 
-    console.log(req.query);
-
     if (!url || !anime_id || !episode || !kind || !language || !uploader)
-        next(new Error('Missing required parameters'));
+        return next(new Error('Missing required parameters'));
 
     try {
         let existing_url = await ShikiVideos.findOne({ where: { url: url }});
 
         if (existing_url)
-            next(new Error('Record with this url already exists'));
+            return res.status(400).send({ message: 'Record with this url already exists' });
 
         ShikiVideos.create({
             url: url,
@@ -50,12 +48,12 @@ router.post('/', allowFor('database:shikivideos', 'database:shikivideos_create')
                 if (!record)
                     throw new Error('Cannot insert new record');
 
-                res.status(201).send(record);
+                return res.status(201).send(record);
             })
     } catch (err) {
         console.error(err);
 
-        next(err);
+        return next(err);
     }
 });
 

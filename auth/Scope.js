@@ -38,7 +38,7 @@ class Scope {
     }
 
     static normilize(scopes) {
-        let scopes_set = new Set(scopes.split(';'));
+        let scopes_set = new Set(`${scopes}`.split(';'));
         let normilized = new Set([]);
 
         // TODO: remove scopes with fewer permissions
