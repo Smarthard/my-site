@@ -42,7 +42,7 @@ router.post('/', allowFor('database:shikivideos', 'database:shikivideos_create')
             language: language,
             quality: quality,
             author: author,
-            uploader: uploader.username
+            uploader: uploader
         })
             .then(record => {
                 if (!record)
