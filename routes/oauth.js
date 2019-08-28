@@ -74,7 +74,7 @@ function generateTokens(client_id, user_id, scopes, optional) {
         ]).then(([d_access, access, refresh, d_auth_code]) => {
             let tokens_response = {
                 access_token: access.token,
-                exprires: access.expires,
+                expires: access.expires,
                 token_type: 'Bearer'
             };
 
