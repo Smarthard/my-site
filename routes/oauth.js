@@ -1,3 +1,5 @@
+const ServerError = require('../types/ServerError');
+
 let express = require('express');
 let router = express.Router();
 let uuid = require('uuid/v4');
@@ -57,7 +59,7 @@ function generateTokens(client_id, user_id, scopes, optional) {
         };
 
         if (!client_id || !user_id || !scopes)
-            reject(new Error('Missing required parameters'));
+            reject(new ServerError('Missing required parameters', 'Invalid required parameter', 400));
 
         Promise.all([
             opt_operations.delete_old_tokens(),
@@ -94,16 +96,16 @@ router.post('/register', middleware.allowFor('user', 'admin'), (req, res, next) 
     let scopes = req.body.scopes || 'default';
 
     if (!client_name || client_name.length < 4 || client_name.length > 32)
-        return next(new Error('Invalid parameter "client_name"'));
+        return next(new ServerError('Invalid parameter "client_name"', 'Invalid required parameter', 400));
 
     if (!redirect_uri || redirect_uri > 2000 || getHostName(redirect_uri) === null)
-        return next(new Error('Invalid parameter "redirect_uri'));
+        return next(new ServerError('Invalid parameter "redirect_uri', 'Invalid required parameter', 400));
 
     if (!redirect_uri.startsWith('http'))
         redirect_uri = 'http://' + redirect_uri;
 
     if (scopes && scopes.length > 1024)
-        return next(new Error('Invalid parameter "scopes"'));
+        return next(new ServerError('Invalid parameter "scopes"', 'Invalid required parameter', 400));
 
     Clients.create({
         user_id: req.session.user.id,
@@ -123,7 +125,7 @@ router.post('/register', middleware.allowFor('user', 'admin'), (req, res, next) 
     }).catch(err => {
         console.error(err);
 
-        return next(new Error('an error occurred during operation'));
+        return next(new ServerError('An error occurred during operation', 'Internal Error', 500));
     });
 });
 
@@ -138,19 +140,19 @@ router.get('/authorize', (req, res, next) => {
     const state = req.query.state;
 
     if (!response_type)
-        next(new Error('Parameter "response_type" required'));
+        next(new ServerError('Parameter "response_type" required', 'Invalid required parameter', 400));
 
     if (response_type === 'code') {
         Clients.findOne({ where: { client_id: client_id } })
             .then(client => {
                 if (!client)
-                    next(new Error('Invalid parameter "client_id"'));
+                    next(new ServerError('Invalid parameter "client_id"', 'Invalid required parameter', 400));
 
                 if (!client.redirect_uri.includes(redirect_uri) && !redirect_uri.includes(client.redirect_uri) )
-                    next(new Error('Invalid parameter "redirect_uri"'));
+                    next(new ServerError('Invalid parameter "redirect_uri"', 'Invalid required parameter', 400));
 
                 if (client.banned)
-                    next(new Error('This client was banned'));
+                    next(new ServerError('This client was banned', 'Invalid client', 403));
 
                 req.session.client_id = client_id;
                 req.session.redirect_uri = redirect_uri;
@@ -186,13 +188,13 @@ router.post('/authorize', (req, res, next) => {
                     res.redirect(`${redirect_uri}?code=${authcode.auth_code}&state=${state}`)
                 })
             } else {
-                return next(new Error('Invalid user credentials'));
+                return next(new ServerError('Invalid user credentials', 'Unauthorized', 401));
             }
         })
         .catch(err => {
             console.error(err);
 
-            return next(new Error('an error occurred during operation'));
+            return next(new ServerError('An error occurred during operation', 'Internal Error', 500));
         });
 });
 
@@ -216,18 +218,18 @@ router.all('/token', (req, res, next) => {
         ])
             .then(async ([auth_code, client]) => {
                 if (!auth_code)
-                    return next(new Error('Invalid authorization code'));
+                    return next(new ServerError('Invalid authorization code', 'Unauthorized', 401));
 
                 if (!client)
-                    return next(new Error('Invalid client credentials'));
+                    return next(new ServerError('Invalid client credentials', 'Unauthorized', 401));
 
                 if (Date.now() > auth_code.expires) {
                     AuthCodes.destroy({ where: { auth_code: code }});
-                    return next(new Error('Authorization Code expired'));
+                    return next(new ServerError('Authorization Code expired', 'Unauthorized', 401));
                 }
 
                 if (getHostName(redirect_uri) !== getHostName(client.redirect_uri))
-                    return next(new Error('Redirect uri mismatch'));
+                    return next(new ServerError('Redirect URI mismatch', 'Unauthorized', 401));
 
                 try {
                     const user_id = auth_code.user_id;
@@ -241,7 +243,7 @@ router.all('/token', (req, res, next) => {
                 }
             }).catch(err => {
                 console.error(err);
-                return next(new Error('Internal server error'));
+                return next(new ServerError('An error occurred during operation', 'Internal Error', 500));
             });
     }
 
@@ -252,10 +254,10 @@ router.all('/token', (req, res, next) => {
             RefreshTokens.findOne({where: {token: refresh}}),
         ]).then(async ([client, refresh_t]) => {
             if (!client || !refresh_t || refresh_t.client_id !== client.client_id)
-                return next(new Error('Invalid request'));
+                return next(new ServerError('Token is invalid or expired or granted to another client', 'Unauthorized', 401));
 
             if (Date.now() > refresh_t.expires)
-                return next(new Error('Refresh Token expired'));
+                return next(new ServerError('Token is invalid or expired or granted to another client', 'Unauthorized', 401));
 
             try {
                 const user_id = refresh_t.user_id;
@@ -271,7 +273,7 @@ router.all('/token', (req, res, next) => {
         }).catch(err => {
             console.error(err);
 
-            return next(new Error('Internal server error'));
+            return next(new ServerError('An error occurred during operation', 'Internal Error', 500));
         })
     }
 
@@ -279,10 +281,10 @@ router.all('/token', (req, res, next) => {
         Clients.findOne({ where: { client_id: client_id, client_secret: client_secret }})
             .then(async (client) => {
                 if (!client)
-                    return next('Invalid client credentials');
+                    return next(new ServerError('Invalid client credentials', 'Invalid request', 400));
 
                 if (!client.is_trusted)
-                    return next('This client is not trusted');
+                    return next(new ServerError('This client is not trusted', 'Invalid request', 400));
 
                 try {
                     const user_id = client.user_id;
@@ -298,7 +300,7 @@ router.all('/token', (req, res, next) => {
             .catch(err => {
                 console.error(err);
 
-                return next(new Error('Internal server error'));
+                return next(new ServerError('An error occurred during operation', 'Internal Error', 500));
             })
     }
 });

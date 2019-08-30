@@ -23,20 +23,7 @@ const { SESSION_SECRET, PRODUCTION } = require('./config/auth');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.set('trust proxy', true);
-if (PRODUCTION) {
-    app.use((err, req, res, next) => {
-        res.status(err.status || 500).send({ message: err.toString() });
-    });
-    app.use(morgan('combined'));
-} else {
-    app.use((err, req, res, next) => {
-        res.status(err.status || 500).send({
-            message: err.toString(),
-            error: err
-        });
-    });
-    app.use(morgan('dev'));
-}
+app.use(morgan(PRODUCTION ? 'combined' : 'dev'));
 app.use(session({
     key: 'user_sid',
     secret: SESSION_SECRET,
@@ -56,10 +43,6 @@ app.use(session({
     })
 }));
 app.use(cors());
-// app.use(cors({
-//     origin: PRODUCTION ? /(https:\/\/)?((www.)?smarthard.net|shikimori.(org|one))/i : /(127.0.0.1|localhost):4200/i ,
-//     credentials: true
-// }));
 app.use(helmet({
     hsts: false // disabled because of nginx configuration
 }));
@@ -77,6 +60,13 @@ app.use(/^\/api\/?$/i, (req, res) => {
 
 app.all('*', (req, res) => {
     res.status(404).send({});
+});
+
+app.use((err, req, res, next) => {
+    res.status(err.status || 500).send({
+        error: err.brief,
+        message: PRODUCTION? err.message : err.toString()
+    });
 });
 
 let httpServer = http.createServer(app);

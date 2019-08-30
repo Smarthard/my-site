@@ -1,3 +1,4 @@
+const ServerError = require('../types/ServerError');
 
 let Op = require('sequelize').Op;
 let express = require('express');
@@ -24,7 +25,7 @@ router.post('/', allowFor('database:shikivideos', 'database:shikivideos_create')
     const uploader = req.query.uploader;
 
     if (!url || !anime_id || !episode || !kind || !language || !uploader)
-        return next(new Error('Missing required parameters'));
+        return next(new ServerError('Required parameters missing', 'Invalid required parameter', 400));
 
     try {
         let existing_url = await ShikiVideos.findOne({ where: { url: url }});
@@ -46,7 +47,7 @@ router.post('/', allowFor('database:shikivideos', 'database:shikivideos_create')
         })
             .then(record => {
                 if (!record)
-                    throw new Error('Cannot insert new record');
+                    throw new ServerError('Cannot insert new record', 'Internal Error', 500);
 
                 return res.status(201).send(record);
             })
@@ -113,7 +114,7 @@ router.get('/unique', (req, res, next) => {
     const anime_id = req.query.anime_id || null;
 
     if (!column || !AVAILABLE_COLUMNS.includes(`${column}`.toString().toLowerCase()))
-        next(new Error('Requested column is not available'));
+        next(new ServerError('Requested column is not available', 'Invalid required parameter', 400));
 
     let search_options = {
         attributes: [column],

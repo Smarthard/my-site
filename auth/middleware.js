@@ -1,3 +1,5 @@
+const ServerError = require('../types/ServerError');
+
 let bcrypt = require('bcrypt');
 
 let AccessTokens = require('../models').AccessToken;
@@ -32,10 +34,10 @@ function allowFor(...scopes) {
             return AccessTokens.findOne({ where: { token: access_token }})
                 .then(access => {
                     if (access.token !== access_token)
-                        return next(new Error('Unauthorized'));
+                        return next(new ServerError('Token is invalid or expired or granted to another client', 'Unauthorized', 401));
 
                     if (Date.now() > access.expires)
-                        return next(new Error('Token expired'));
+                        return next(new ServerError('Token is invalid or expired or granted to another client', 'Unauthorized', 401));
 
                     // TODO: optimize this
                     let isAllowed = false;
@@ -48,12 +50,12 @@ function allowFor(...scopes) {
                     if (isAllowed)
                         return next();
                     else
-                        return next(new Error('Unauthorized'));
+                        return next(new ServerError('Token is invalid or expired or granted to another client', 'Not Allowed', 403));
                 })
                 .catch(err => next(err));
         }
 
-        return next(new Error('Unauthorized'));
+        return next(new ServerError('Token is invalid or expired or granted to another client', 'Unauthorized', 401));
     }
 }
 

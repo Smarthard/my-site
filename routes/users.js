@@ -1,3 +1,5 @@
+const ServerError = require('../types/ServerError');
+
 let express = require('express');
 let bcrypt = require('bcrypt');
 let router = express.Router();
@@ -20,10 +22,10 @@ router.post('/', async (req, res, next) => {
     const email = req.body.email;
 
     if (!login || !password || !email)
-        return next(new Error('Required parameters missing'));
+        return next(new ServerError('Required parameters missing', 'Invalid required parameter', 400));
 
     if (login.length > 16 || password.length > 32 || login === '' || password === '' || !isEmail(email))
-        return next(new Error('Invalid parameters'));
+        return next(new ServerError('login/password is too long or too short, or email is invalid', 'Invalid parameters', 400));
 
     const existing_login = await User.findOne({ where: { login: login }});
     const existing_email = await User.findOne({ where: { email: email }});
@@ -45,7 +47,7 @@ router.post('/', async (req, res, next) => {
                         scopes: user.scopes
                     });
                 } else {
-                    return next(new Error('an error occurred during operation'));
+                    return next(new ServerError('An error occurred during operation', 'Internal Error', 500));
                 }
             })
             .catch(err => {
@@ -54,7 +56,7 @@ router.post('/', async (req, res, next) => {
                 return res.status(400).send();
             });
     } else {
-        return next(new Error('User with these login or email is exist'));
+        return next(new ServerError('User with these login or email is exist', 'Invalid required parameter', 400));
     }
 });
 
