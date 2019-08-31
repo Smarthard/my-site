@@ -111,22 +111,30 @@ router.get('/search', async (req, res) => {
 router.get('/unique', (req, res, next) => {
     const AVAILABLE_COLUMNS = ['anime_id', 'anime_russian', 'anime_english', 'author'];
     const column = req.query.column;
-    const anime_id = req.query.anime_id || null;
+    const anime_id = req.query.anime_id;
+    const filter = req.query.filter;
 
     if (!column || !AVAILABLE_COLUMNS.includes(`${column}`.toString().toLowerCase()))
-        next(new ServerError('Requested column is not available', 'Invalid required parameter', 400));
+        next(new ServerError(`Available columns: ${AVAILABLE_COLUMNS}`, 'Invalid required parameter', 400));
+
+    if (!anime_id || isNaN(anime_id))
+        next(new ServerError('Parameter \'anime_id\' missing or invalid', 'Invalid required parameter', 400));
 
     let search_options = {
-        attributes: [column],
-        group: [column]
+        plain: false,
+        order: [column]
     };
 
     if (anime_id)
         search_options.where = { anime_id: anime_id };
 
-    ShikiVideos.findAll(search_options)
+    ShikiVideos.aggregate(column, 'DISTINCT', search_options)
         .then(columns => {
-            res.status(200).send(columns);
+            let values = columns.map(col => col.DISTINCT);
+            if (filter)
+                values = values.filter(val => val.toString().includes(filter));
+
+            res.status(200).send(values);
         })
         .catch(err => next(err));
 });
