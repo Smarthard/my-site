@@ -108,7 +108,7 @@ router.get('/search', async (req, res) => {
     }
 });
 
-router.get('/unique', (req, res, next) => {
+router.get('/unique/count', (req, res, next) => {
     const AVAILABLE_COLUMNS = ['anime_id', 'anime_russian', 'anime_english', 'author'];
     const column = req.query.column;
     const anime_id = req.query.anime_id;
@@ -116,9 +116,6 @@ router.get('/unique', (req, res, next) => {
 
     if (!column || !AVAILABLE_COLUMNS.includes(`${column}`.toString().toLowerCase()))
         next(new ServerError(`Available columns: ${AVAILABLE_COLUMNS}`, 'Invalid required parameter', 400));
-
-    if (!anime_id || isNaN(anime_id))
-        next(new ServerError('Parameter \'anime_id\' missing or invalid', 'Invalid required parameter', 400));
 
     let search_options = {
         plain: false,
@@ -134,7 +131,35 @@ router.get('/unique', (req, res, next) => {
             if (filter)
                 values = values.filter(val => val && val.toString().includes(filter));
 
-            res.status(200).send(values);
+            res.status(200).send({ length: values.length });
+        })
+        .catch(err => next(err));
+});
+
+router.get('/unique', (req, res, next) => {
+    const AVAILABLE_COLUMNS = ['anime_id', 'anime_russian', 'anime_english', 'author'];
+    const column = req.query.column;
+    const anime_id = req.query.anime_id;
+    const filter = req.query.filter;
+
+    if (!column || !AVAILABLE_COLUMNS.includes(`${column}`.toString().toLowerCase()))
+        next(new ServerError(`Available columns: ${AVAILABLE_COLUMNS}`, 'Invalid required parameter', 400));
+
+    let search_options = {
+        plain: false,
+        order: [column]
+    };
+
+    if (anime_id)
+        search_options.where = { anime_id: anime_id };
+
+    ShikiVideos.aggregate(column, 'DISTINCT', search_options)
+        .then(columns => {
+            let values = columns.map(col => col.DISTINCT) || [];
+            if (filter)
+                values = values.filter(val => val && val.toString().toLowerCase().includes(filter.toLowerCase()));
+
+            res.status(200).send(values.slice(0, 49));
         })
         .catch(err => next(err));
 });
