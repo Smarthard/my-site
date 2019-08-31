@@ -130,9 +130,9 @@ router.get('/unique', (req, res, next) => {
 
     ShikiVideos.aggregate(column, 'DISTINCT', search_options)
         .then(columns => {
-            let values = columns.map(col => col.DISTINCT);
+            let values = columns.map(col => col.DISTINCT) || [];
             if (filter)
-                values = values.filter(val => val.toString().includes(filter));
+                values = values.filter(val => val && val.toString().includes(filter));
 
             res.status(200).send(values);
         })
