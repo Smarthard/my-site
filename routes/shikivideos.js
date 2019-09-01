@@ -98,6 +98,7 @@ router.get('/search', async (req, res) => {
                 sql_title_where,
                 sql_dyn_where
         ],
+        order: ['author'],
         limit: limit, offset: offset
     });
 
@@ -189,7 +190,7 @@ router.get('/:anime_id', async (req, res) => {
 
     if (!isNaN(anime_id)) {
         articles = await ShikiVideos.findAll({
-            where: sql_dyn_where, limit: limit, offset: offset
+            where: sql_dyn_where, order: ['author'], limit: limit, offset: offset
         });
     } else {
         res.status(400).send({msg: `wrong value for parameter id: ${anime_id}`});
