@@ -17,6 +17,7 @@ let shikivideos = require('./routes/shikivideos');
 let users = require('./routes/users');
 let auth = require('./routes/authorization');
 let oauth = require('./routes/oauth');
+let status = require('./routes/status');
 
 const { SESSION_SECRET, PRODUCTION } = require('./config/auth');
 
@@ -52,6 +53,7 @@ app.use(express.static(path.join(__dirname, 'views')));
 app.use('/api/articles/', articles);
 app.use('/api/shikivideos/', shikivideos);
 app.use('/api/users/', users);
+app.use('/api/status', status);
 app.use('/auth/', auth);
 app.use('/oauth/', oauth);
 app.use(/^\/api\/?$/i, (req, res) => {
