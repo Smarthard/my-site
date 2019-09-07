@@ -1,0 +1,54 @@
+{
+  "definition": {
+    "openapi": "3.0.0",
+    "info": {
+      "title": "Smarthard's site API Documentation",
+      "version": "v1",
+      "contact": {
+        "name": "Developer",
+        "email": "th3smartchan@gmail.com"
+      },
+      "license": {
+        "name": "BSD 2-Clause License"
+      }
+    },
+    "host": "smarthard.net",
+    "basePath": "/api",
+    "produces": [
+      "application/json"
+    ],
+    "schemes": [
+      "https"
+    ],
+    "components": {
+      "securitySchemes": {
+        "BearerAuth": {
+          "type": "http",
+          "scheme": "bearer"
+        },
+        "OAuth2": {
+          "type": "oauth2",
+          "flows": {
+            "authorizationCode": {
+              "authorizationUrl": "https://smarthard.net/oauth/authorize",
+              "tokenUrl": "https://smarthard.net/oauth/token",
+              "scopes": {
+                "admin": "Grants access to admin operations and extra info",
+                "database": "Grants access to entire database",
+                "database:articles": "Grants access to Articles scheme",
+                "database:shikivideos": "Grants access to Shikivideos scheme",
+                "database:shikivideos_create": "Grants write access to Shikivideos scheme",
+                "default": "Grants default access rights (login, logout, information about itself)",
+                "user": "Grants access to all user information",
+                "user:modify": "Grants access to user information modification"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "apis": [
+    "./routes/*.js"
+  ]
+}

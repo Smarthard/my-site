@@ -1,3 +1,6 @@
+
+const { SESSION_SECRET, PRODUCTION } = require('./config/auth');
+
 let express = require('express');
 let http = require('http');
 let cors = require('cors');
@@ -7,9 +10,13 @@ let morgan = require('morgan');
 let helmet = require('helmet');
 let path = require('path');
 let app = express();
+let swagger_ui = require('swagger-ui-express');
+let swagger_jsdoc = require('swagger-jsdoc');
 
 let middleware = require('./auth/middleware');
 let PGStore = require('connect-pg-simple')(session);
+let swagger_config = require('./swagger-jsdoc-options.json');
+let swagger_spec = swagger_jsdoc(swagger_config);
 
 /* ROUTES */
 let articles = require('./routes/articles');
@@ -18,8 +25,6 @@ let users = require('./routes/users');
 let auth = require('./routes/authorization');
 let oauth = require('./routes/oauth');
 let status = require('./routes/status');
-
-const { SESSION_SECRET, PRODUCTION } = require('./config/auth');
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -50,6 +55,7 @@ app.use(helmet({
 app.use((req, res, next) => middleware.destroyInvalidCookies(req, res, next));
 
 app.use(express.static(path.join(__dirname, 'views')));
+app.use('/docs/swagger', swagger_ui.serve, swagger_ui.setup(swagger_spec));
 app.use('/api/articles/', articles);
 app.use('/api/shikivideos/', shikivideos);
 app.use('/api/users/', users);
