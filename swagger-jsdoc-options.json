@@ -45,6 +45,83 @@
             }
           }
         }
+      },
+      "schemas": {
+        "UserCredentials": {
+          "type": "object",
+          "properties": {
+            "login": {
+              "type": "string",
+              "example": "User"
+            },
+            "password": {
+              "type": "string",
+              "example": "passw0rd"
+            }
+          }
+        },
+        "User": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer"
+            },
+            "name": {
+              "type": "string"
+            },
+            "login": {
+              "type": "string"
+            },
+            "password": {
+              "type": "string"
+            },
+            "email": {
+              "type": "string",
+              "format": "email"
+            },
+            "scopes": {
+              "$ref": "#/components/schemas/OAuthScopes"
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        "UserWithoutPassword": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "integer"
+            },
+            "name": {
+              "type": "string",
+              "example": "username"
+            },
+            "login": {
+              "type": "string",
+              "example": "User"
+            },
+            "email": {
+              "type": "string",
+              "format": "email"
+            },
+            "scopes": {
+              "$ref": "#/components/schemas/OAuthScopes"
+            },
+            "createdAt": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        },
+        "OAuthScopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "example": ["admin", "user"]
+        }
       }
     }
   },
