@@ -12,6 +12,84 @@ let ShikiVideos = require('../models').ShikiVideos;
 
 /* CREATE */
 
+/**
+ * @swagger
+ * /api/shikivideos:
+ *  post:
+ *      summary: Upload new link to video archive
+ *      description: Create new record
+ *      tags:
+ *          - Shikivideos
+ *      security:
+ *          - BearerAuth:
+ *              - token
+ *          - OAuth2:
+ *              - database:shikivideos
+ *              - database:shikivideos_create
+ *      produces:
+ *          - application/json
+ *      parameters:
+ *          - name: url
+ *            description: link to remote embedded player (should be unique, see Responses)
+ *            in: query
+ *            type: string
+ *            required: true
+ *          - name: anime_id
+ *            description: Shikimori's anime ID
+ *            in: query
+ *            type: integer
+ *            required: true
+ *          - name: episode
+ *            description: episode no.
+ *            in: query
+ *            type: integer
+ *            required: true
+ *          - name: kind
+ *            description: video's kind (raw/dubs/subs)
+ *            in: query
+ *            schema:
+ *              $ref: '#/components/schemas/ShikivideosKinds'
+ *            required: true
+ *          - name: language
+ *            description: dub/sub's language
+ *            in: query
+ *            type: integer
+ *            required: true
+ *          - name: uploader
+ *            description: Shikimori user's ID
+ *            in: query
+ *            type: string
+ *            required: true
+ *          - name: anime_english
+ *            description: anime name in English
+ *            in: query
+ *            type: string
+ *            required: false
+ *          - name: anime_russian
+ *            description: anime name in Russian
+ *            in: query
+ *            type: string
+ *            required: false
+ *          - name: author
+ *            description: author of dubs/subs
+ *            in: query
+ *            type: string
+ *            required: false
+ *          - name: quality
+ *            description: video's quality
+ *            in: query
+ *            type: string
+ *            required: false
+ *      responses:
+ *          201:
+ *              description: Created
+ *          202:
+ *              description: Accepted, but URL already exists
+ *          400:
+ *              description: Invalid required parameters
+ *          500:
+ *              description: Server fails on some operation, try later
+ */
 router.post('/', allowFor('database:shikivideos', 'database:shikivideos_create'), async (req, res, next) => {
     const url = req.query.url;
     const anime_id = req.query.anime_id;
@@ -60,6 +138,75 @@ router.post('/', allowFor('database:shikivideos', 'database:shikivideos_create')
 
 /* READ */
 
+/**
+ * @swagger
+ * /api/shikivideos/search:
+ *  get:
+ *      summary: Find anime by name
+ *      description: Find anime with specified name (russian or english)
+ *      tags:
+ *          - Shikivideos
+ *      produces:
+ *          - application/json
+ *      parameters:
+ *          - name: title
+ *            description: anime's title in Russian or English
+ *            in: query
+ *            type: string
+ *            required: false
+ *          - name: episode
+ *            description: anime's episode no.
+ *            in: query
+ *            type: integer
+ *            required: false
+ *          - name: quality
+ *            description: video's quality
+ *            in: query
+ *            type: string
+ *            required: false
+ *          - name: author
+ *            description: author of dubs/subs
+ *            in: query
+ *            type: string
+ *            required: false
+ *          - name: kind
+ *            description: video's kind (raw/dubs/subs)
+ *            in: query
+ *            schema:
+ *              $ref: '#/components/schemas/ShikivideosKinds'
+ *            required: false
+ *          - name: lang
+ *            description: dub/sub's language
+ *            in: query
+ *            type: string
+ *            required: false
+ *          - name: uploader
+ *            description: video's uploader
+ *            in: query
+ *            type: string
+ *            required: false
+ *          - name: offset
+ *            description: offset in database's selection response
+ *            in: query
+ *            type: integer
+ *            required: false
+ *          - name: limit
+ *            description: maximum of database's selection size
+ *            in: query
+ *            type: integer
+ *            required: false
+ *      responses:
+ *          200:
+ *              description: Founded results
+ *              content:
+ *                  application/json:
+ *                      schema:
+ *                          type: array
+ *                          items:
+ *                              $ref: '#/components/schemas/Shikivideos'
+ *          500:
+ *              description: Server fails on some operation, try later
+ */
 router.get('/search', async (req, res) => {
     const offset = req.query.offset || 0;
     let limit = req.query.limit || 10;
@@ -109,6 +256,50 @@ router.get('/search', async (req, res) => {
     }
 });
 
+/**
+ * @swagger
+ * /api/shikivideos/unique/count:
+ *  get:
+ *      summary: Count unique values in videos archive
+ *      description: count unique values of specified column in videos
+ *      tags:
+ *          - Shikivideos
+ *      produces:
+ *          - application/json
+ *      parameters:
+ *          - name: column
+ *            description: column to find unique values
+ *            in: query
+ *            schema:
+ *              type: string
+ *              enum:
+ *                  - anime_id
+ *                  - anime_russian
+ *                  - anime_english
+ *                  - author
+ *            required: true
+ *          - name: anime_id
+ *            description: filter by anime ID.
+ *            in: query
+ *            type: integer
+ *            required: false
+ *          - name: filter
+ *            description: find records with specified value
+ *            in: query
+ *            type: string
+ *            required: false
+ *      responses:
+ *          200:
+ *              description: OK
+ *              content:
+ *                  application/json:
+ *                      schema:
+ *                          $ref: '#/components/schemas/ShikivideosLengthResponse'
+ *          400:
+ *              description: Invalid required parameters
+ *          500:
+ *              description: Server fails on some operation, try later
+ */
 router.get('/unique/count', (req, res, next) => {
     const AVAILABLE_COLUMNS = ['anime_id', 'anime_russian', 'anime_english', 'author'];
     const column = req.query.column;
@@ -137,6 +328,46 @@ router.get('/unique/count', (req, res, next) => {
         .catch(err => next(err));
 });
 
+/**
+ * @swagger
+ * /api/shikivideos/unique:
+ *  get:
+ *      summary: List unique values in videos archive
+ *      description: Find unique values of specified column in videos
+ *      tags:
+ *          - Shikivideos
+ *      produces:
+ *          - application/json
+ *      parameters:
+ *          - name: column
+ *            description: column to find unique values
+ *            in: query
+ *            schema:
+ *              type: string
+ *              enum:
+ *                  - anime_id
+ *                  - anime_russian
+ *                  - anime_english
+ *                  - author
+ *            required: true
+ *          - name: anime_id
+ *            description: filter by anime ID.
+ *            in: query
+ *            type: integer
+ *            required: false
+ *          - name: filter
+ *            description: find records with specified value
+ *            in: query
+ *            type: string
+ *            required: false
+ *      responses:
+ *          200:
+ *              description: Founded results
+ *          400:
+ *              description: Invalid required parameters
+ *          500:
+ *              description: Server fails on some operation, try later
+ */
 router.get('/unique', (req, res, next) => {
     const AVAILABLE_COLUMNS = ['anime_id', 'anime_russian', 'anime_english', 'author'];
     const column = req.query.column;
@@ -165,6 +396,77 @@ router.get('/unique', (req, res, next) => {
         .catch(err => next(err));
 });
 
+/**
+ * @swagger
+ * /api/shikivideos/{anime_id}:
+ *  get:
+ *      summary: Find anime by ID
+ *      description: Find animes with specified ID (ID is related to Shikimori's API anime_id)
+ *      tags:
+ *          - Shikivideos
+ *      produces:
+ *          - application/json
+ *      parameters:
+ *          - name: anime_id
+ *            description: ID of anime from Shikimori's API
+ *            in: path
+ *            type: integer
+ *            required: true
+ *          - name: episode
+ *            description: anime's episode no.
+ *            in: query
+ *            type: integer
+ *            required: false
+ *          - name: quality
+ *            description: video's quality
+ *            in: query
+ *            type: string
+ *            required: false
+ *          - name: author
+ *            description: author of dubs/subs
+ *            in: query
+ *            type: string
+ *            required: false
+ *          - name: kind
+ *            description: video's kind (raw/dubs/subs)
+ *            in: query
+ *            schema:
+ *              $ref: '#/components/schemas/ShikivideosKinds'
+ *            required: false
+ *          - name: lang
+ *            description: dub/sub's language
+ *            in: query
+ *            type: string
+ *            required: false
+ *          - name: uploader
+ *            description: video's uploader
+ *            in: query
+ *            type: string
+ *            required: false
+ *          - name: offset
+ *            description: offset in database's selection response
+ *            in: query
+ *            type: integer
+ *            required: false
+ *          - name: limit
+ *            description: maximum of database's selection size
+ *            in: query
+ *            type: integer
+ *            required: false
+ *      responses:
+ *          200:
+ *              description: Founded results
+ *              content:
+ *                  application/json:
+ *                      schema:
+ *                          type: array
+ *                          items:
+ *                              $ref: '#/components/schemas/Shikivideos'
+ *          400:
+ *              description: Invalid required parameters
+ *          500:
+ *              description: Server fails on some operation, try later
+ */
 router.get('/:anime_id', async (req, res) => {
     const anime_id = req.params.anime_id;
     const offset = req.query.offset || 0;
@@ -205,6 +507,34 @@ router.get('/:anime_id', async (req, res) => {
 
 /* OTHER */
 
+/**
+ * @swagger
+ * /api/shikivideos/{anime_id}/length:
+ *  get:
+ *      summary: Anime's max episode in archive
+ *      description: get last anime episode no. from database
+ *      tags:
+ *          - Shikivideos
+ *      produces:
+ *          - application/json
+ *      parameters:
+ *          - name: anime_id
+ *            description: ID of anime from Shikimori's API
+ *            in: path
+ *            type: integer
+ *            required: true
+ *      responses:
+ *          200:
+ *              description: Max episode of specified anime
+ *              content:
+ *                  application/json:
+ *                      schema:
+ *                          $ref: '#/components/schemas/ShikivideosLengthResponse'
+ *          400:
+ *              description: Invalid required parameters
+ *          500:
+ *              description: Server fails on some operation, try later
+ */
 router.get('/:anime_id/length', (req, res) => {
     const anime_id = req.params.anime_id;
 
