@@ -186,6 +186,32 @@
               "example": 278015
             }
           }
+        },
+        "StatusResponse": {
+          "type": "object",
+          "properties": {
+            "server": {
+              "type": "string",
+              "example": "online"
+            },
+            "api": {
+              "type": "string",
+              "example": "offline"
+            }
+          }
+        },
+        "StatusUptimeResponse": {
+          "type": "object",
+          "properties": {
+            "server": {
+              "type": "string",
+              "example": "1 month, 20 days"
+            },
+            "api": {
+              "type": "string",
+              "example": "2 days, 14 hours"
+            }
+          }
         }
       }
     }
