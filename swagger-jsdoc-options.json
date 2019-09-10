@@ -115,13 +115,6 @@
             }
           }
         },
-        "OAuthScopes": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "example": ["admin", "user"]
-        },
         "ShikivideosKinds": {
           "type": "string",
           "enum": ["озвучка", "оригинал", "субтитры"]
@@ -212,6 +205,21 @@
               "example": "2 days, 14 hours"
             }
           }
+        },
+        "OAuthScopes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "example": ["admin", "user"]
+        },
+        "OAuthResponseType": {
+          "type": "string",
+          "enum": ["code"]
+        },
+        "OAuthGrantType": {
+          "type": "string",
+          "enum": ["authorization_code", "refresh_token", "client_credentials"]
         }
       }
     }

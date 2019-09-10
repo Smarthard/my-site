@@ -90,6 +90,46 @@ function generateTokens(client_id, user_id, scopes, optional) {
 
 /* path /oauth/ */
 
+/**
+ * @swagger
+ * /oauth/register:
+ *  post:
+ *      summary: Register new client
+ *      description: Register new client for logged in user
+ *      tags:
+ *          - OAuth2
+ *      security:
+ *          - BearerAuth:
+ *              - token
+ *          - OAuth2:
+ *              - default
+ *      produces:
+ *          - application/json
+ *      parameters:
+ *          - name: client_name
+ *            description: Name of the client
+ *            in: query
+ *            type: string
+ *            required: true
+ *          - name: redirect_uri
+ *            description: Redirect URI on success
+ *            in: query
+ *            type: string
+ *            required: true
+ *          - name: scopes
+ *            description: Permissions required or granted for Client
+ *            in: query
+ *            schema:
+ *              $ref: '#/components/schemas/OAuthScopes'
+ *            required: false
+ *      responses:
+ *          201:
+ *              description: Created
+ *          401:
+ *              description: Unauthorized
+ *          500:
+ *              description: Server fails on some operation, try later
+ */
 router.post('/register', middleware.allowFor('user', 'admin'), (req, res, next) => {
     let client_name = req.body.client_name;
     let redirect_uri = req.body.redirect_uri;
@@ -130,7 +170,43 @@ router.post('/register', middleware.allowFor('user', 'admin'), (req, res, next) 
 });
 
 /**
- * The way to obtain Authorization Code
+ * @swagger
+ * /oauth/authorize:
+ *  get:
+ *      summary: Request Authorization Code
+ *      description: Authorization Code is a token that allows your Client to get Access and Refresh Tokens
+ *      tags:
+ *          - OAuth2
+ *      produces:
+ *          - application/json
+ *      parameters:
+ *          - name: response_type
+ *            description: Type of response to obtain Authorization Code (only "code" type supported)
+ *            in: query
+ *            schema:
+ *              $ref: '#/components/schemas/OAuthResponseType'
+ *            required: true
+ *          - name: client_id
+ *            description: ID of the OAuth2 Client
+ *            in: query
+ *            type: string
+ *            required: true
+ *          - name: redirect_uri
+ *            description: Redirect URI on success
+ *            in: query
+ *            type: string
+ *            required: true
+ *          - name: scopes
+ *            description: Permissions required or granted for Client
+ *            in: query
+ *            schema:
+ *              $ref: '#/components/schemas/OAuthScopes'
+ *            required: true
+ *          - name: state
+ *            description: Random string to verify response for your request
+ *            in: query
+ *            type: string
+ *            required: false
  */
 router.get('/authorize', (req, res, next) => {
     const response_type = req.query.response_type;
@@ -199,7 +275,69 @@ router.post('/authorize', (req, res, next) => {
 });
 
 /**
- * Obtain Access and Refresh Tokens with Authorization Code or Refresh Token
+ * @swagger
+ * /oauth/token:
+ *  get:
+ *      summary: Obtain Access and Refresh Tokens with Authorization Code or Refresh Token
+ *      description: Tokens for access to secured resources
+ *      tags:
+ *          - OAuth2
+ *      produces:
+ *          - application/json
+ *      parameters:
+ *          - name: grant_type
+ *            description: "Type of request for access grant:
+ *              \n
+ *              * authorization_code - Request for access token with granted permissions
+ *              \n
+ *              * refresh_token - Request for renew access token
+ *              \n
+ *              * client_credentials - Request for access token as owner of client (only for trusted clients)
+ *              "
+ *            in: query
+ *            schema:
+ *              $ref: '#/components/schemas/OAuthGrantType'
+ *            required: true
+ *          - name: client_id
+ *            description: ID of the OAuth2 Client
+ *            in: query
+ *            type: string
+ *            required: true
+ *          - name: client_secret
+ *            description: secret of the OAuth2 Client
+ *            in: query
+ *            type: string
+ *            required: true
+ *          - name: redirect_uri
+ *            description: Redirect URI on success
+ *            in: query
+ *            type: string
+ *            required: true
+ *          - name: code
+ *            description: Authorization Code. Required on "Authorization Code" Grant Type
+ *            in: query
+ *            type: string
+ *            required: false
+ *          - name: scopes
+ *            description: Permissions required or granted for Client, "default" if empty
+ *            in: query
+ *            schema:
+ *              $ref: '#/components/schemas/OAuthScopes'
+ *            required: false
+ *          - name: refresh_token
+ *            description: Required on "Refresh Token" Grant Type to renew Access Token
+ *            in: query
+ *            type: string
+ *            required: false
+ *      responses:
+ *          200:
+ *              description: OK
+ *          400:
+ *              description: Invalid required parameters
+ *          401:
+ *              description: Unauthorized
+ *          500:
+ *              description: Server fails on some operation, try later
  */
 router.all('/token', (req, res, next) => {
     const grant_type = req.query.grant_type;
