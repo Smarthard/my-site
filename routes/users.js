@@ -108,40 +108,58 @@ router.get('/:id', async (req, res) => {
 
 /* UPDATE */
 
-router.put('/:id', middleware.allowFor('user', 'admin'), async (req, res) => {
+router.put('/:id', middleware.allowFor('user', 'admin'), async (req, res, next) => {
    const id = req.params.id;
 
    if (id && !isNaN(id)) {
-       User.update(req.body, {where: {id: id}})
-           .then(value => {
-               res.status(200).send();
-           })
-           .catch(err => {
-               console.error(err);
+       let req_user = await User.findOne({ where: { id: req.session.user.id }}).catch(err => next(err));
 
-               res.status(500).send();
-           });
+       if (id == req.session.user.id || req_user.scopes.includes('admin')) {
+
+           if (!req_user.scopes.includes('admin')) {
+               req.body.id = undefined;     // do not change user id
+               req.body.scopes = undefined; // ...and scopes
+           }
+
+           User.update(req.body, { where: {id: id} })
+               .then(() => User.findOne({ where: { id: req.body.id || id }}))
+               .then(user => {
+                   return res.status(200).send({
+                       id: user.id,
+                       name: user.name,
+                       login: user.login,
+                       email: user.email,
+                       scopes: user.scopes
+                   });
+               })
+               .catch(err => next(err));
+       } else {
+           return next(new ServerError('Trying to change protected resources you don\'t belong to', 'Forbidden', 403));
+       }
    } else {
-       res.status(400).send({message: `wrong value for parameter id: ${id}`})
+       return next(new ServerError(`wrong value for parameter id: ${id}`, 'Invalid required parameter', 400));
    }
 });
 
 /* DELETE */
 
-router.delete('/:id', middleware.allowFor('user', 'admin'), async (req, res) => {
+router.delete('/:id', middleware.allowFor('user', 'admin'), async (req, res, next) => {
     const id = req.params.id;
-    let deleted;
 
     if (id && !isNaN(id)) {
-        deleted = await User.destroy({where: {id: id}});
-    } else {
-        res.status(400).send({message: `wrong value for parameter id: ${id}`})
-    }
+        let req_user = await User.findOne({ where: { id: req.session.user.id }}).catch(err => next(err));
 
-    if (deleted) {
-        res.status(200).send({success: true, message: "article with id " + id + " removed"});
+        if (id == req.session.user.id || req_user.scopes.includes('admin')) {
+            User.destroy({where: {id: id}})
+                .then(() => {
+                    return res.status(200).send({});
+                })
+                .catch(err => next(err));
+        } else {
+            return next(new ServerError('Trying to change protected resources you don\'t belong to', 'Forbidden', 403));
+        }
     } else {
-        res.status(400).send({success: false, message: "wrong article id " + id});
+        return next(new ServerError(`wrong value for parameter id: ${id}`, 'Invalid required parameter', 400));
     }
 });
 
