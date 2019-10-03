@@ -301,7 +301,7 @@ router.get('/search', async (req, res) => {
  *              description: Server fails on some operation, try later
  */
 router.get('/unique/count', (req, res, next) => {
-    const AVAILABLE_COLUMNS = ['anime_id', 'anime_russian', 'anime_english', 'author'];
+    const AVAILABLE_COLUMNS = ['anime_id', 'anime_russian', 'anime_english', 'author', 'kind'];
     const column = req.query.column;
     const anime_id = req.query.anime_id;
     const filter = req.query.filter;
@@ -369,7 +369,7 @@ router.get('/unique/count', (req, res, next) => {
  *              description: Server fails on some operation, try later
  */
 router.get('/unique', (req, res, next) => {
-    const AVAILABLE_COLUMNS = ['anime_id', 'anime_russian', 'anime_english', 'author'];
+    const AVAILABLE_COLUMNS = ['anime_id', 'anime_russian', 'anime_english', 'author', 'kind'];
     const column = req.query.column;
     const anime_id = req.query.anime_id;
     const filter = req.query.filter;
