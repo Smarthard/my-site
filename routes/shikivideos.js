@@ -305,6 +305,7 @@ router.get('/unique/count', (req, res, next) => {
     const column = req.query.column;
     const anime_id = req.query.anime_id;
     const filter = req.query.filter;
+    const episode = req.query.episode;
 
     if (!column || !AVAILABLE_COLUMNS.includes(`${column}`.toString().toLowerCase()))
         next(new ServerError(`Available columns: ${AVAILABLE_COLUMNS}`, 'Invalid required parameter', 400));
@@ -316,6 +317,8 @@ router.get('/unique/count', (req, res, next) => {
 
     if (anime_id)
         search_options.where = { anime_id: anime_id };
+    if (anime_id && episode)
+        search_options.where.episode = episode;
 
     ShikiVideos.aggregate(column, 'DISTINCT', search_options)
         .then(columns => {
@@ -373,6 +376,7 @@ router.get('/unique', (req, res, next) => {
     const column = req.query.column;
     const anime_id = req.query.anime_id;
     const filter = req.query.filter;
+    const episode = req.query.episode;
 
     if (!column || !AVAILABLE_COLUMNS.includes(`${column}`.toString().toLowerCase()))
         next(new ServerError(`Available columns: ${AVAILABLE_COLUMNS}`, 'Invalid required parameter', 400));
@@ -384,6 +388,8 @@ router.get('/unique', (req, res, next) => {
 
     if (anime_id)
         search_options.where = { anime_id: anime_id };
+    if (anime_id && episode)
+        search_options.where.episode = episode;
 
     ShikiVideos.aggregate(column, 'DISTINCT', search_options)
         .then(columns => {
