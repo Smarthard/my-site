@@ -371,37 +371,77 @@ router.get('/unique/count', (req, res, next) => {
  *          500:
  *              description: Server fails on some operation, try later
  */
-router.get('/unique', (req, res, next) => {
+router.get('/unique', async (req, res, next) => {
     const AVAILABLE_COLUMNS = ['anime_id', 'anime_russian', 'anime_english', 'author', 'kind', 'url'];
-    const column = req.query.column;
+    const columns = req.query.column.split(' ');
     const anime_id = req.query.anime_id;
     const filter = req.query.filter;
     const episode = req.query.episode;
+    const limit = req.query.limit || 50;
+    const offset = req.query.offset;
 
-    if (!column || !AVAILABLE_COLUMNS.includes(`${column}`.toString().toLowerCase()))
+    const distinctValuesHandler = (values) => {
+        let uniq = {};
+
+        if (filter) {
+            let expression = new RegExp(filter, 'i');
+
+            values = values.filter(val => {
+                return Object.keys(val)
+                    .some(key => val[key] ? expression.test(val[key].toString()) : "");
+            });
+        }
+
+        values.forEach(value => {
+            if (!uniq[value.episode])
+                uniq[value.episode] = {};
+
+            Object.keys(value).forEach(key => {
+                if (!uniq[value.episode][key])
+                    uniq[value.episode][key] = new Set()
+            });
+
+            Object.keys(value).forEach(key => {
+                let unique = key === 'url' ? new URL(value[key]).hostname : value[key];
+                uniq[value.episode][key].add(unique);
+            });
+        });
+
+        Object.keys(uniq).forEach(episode => {
+            Object.keys(uniq[episode]).forEach(key => {
+                if (key === 'episode') {
+                    delete uniq[episode][key];
+                    return;
+                }
+                uniq[episode][key] = [...uniq[episode][key]];
+            })
+        });
+
+        return uniq;
+    };
+
+    if (!columns || !anime_id || !columns.every(value => AVAILABLE_COLUMNS.includes(value)))
         next(new ServerError(`Available columns: ${AVAILABLE_COLUMNS}`, 'Invalid required parameter', 400));
 
     let search_options = {
-        plain: false,
-        order: [column]
+        where: { anime_id: anime_id },
+        limit: limit === 'all' ? null : limit,
+        offset: offset,
+        attributes: [...columns, 'episode']
     };
 
-    if (anime_id)
-        search_options.where = { anime_id: anime_id };
-    if (anime_id && episode)
+    if (episode)
         search_options.where.episode = episode;
 
-    ShikiVideos.aggregate(column, 'DISTINCT', search_options)
-        .then(columns => {
-            let values = columns.map(col => col.DISTINCT) || [];
-            if (filter)
-                values = values.filter(val => val && val.toString().toLowerCase().includes(filter.toLowerCase()));
-            if (column === 'url')
-                values = [...new Set(values.map(val => (new URL(val)).hostname))];
-
-            res.status(200).send(values.slice(0, 49));
-        })
+    let response = await ShikiVideos.findAll(search_options)
+        .then(values => distinctValuesHandler(values.map(v => v.dataValues)))
         .catch(err => next(err));
+
+    if (episode) {
+        response = response[episode] || [];
+    }
+
+    res.status(200).send(response);
 });
 
 /**
