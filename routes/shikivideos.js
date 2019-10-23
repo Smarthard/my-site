@@ -301,7 +301,7 @@ router.get('/search', async (req, res) => {
  *              description: Server fails on some operation, try later
  */
 router.get('/unique/count', (req, res, next) => {
-    const AVAILABLE_COLUMNS = ['anime_id', 'anime_russian', 'anime_english', 'author', 'kind', 'url'];
+    const AVAILABLE_COLUMNS = ['anime_id', 'anime_russian', 'anime_english', 'author', 'kind', 'url', 'language', 'quality'];
     const column = req.query.column;
     const anime_id = req.query.anime_id;
     const filter = req.query.filter;
@@ -372,7 +372,7 @@ router.get('/unique/count', (req, res, next) => {
  *              description: Server fails on some operation, try later
  */
 router.get('/unique', async (req, res, next) => {
-    const AVAILABLE_COLUMNS = ['anime_id', 'anime_russian', 'anime_english', 'author', 'kind', 'url'];
+    const AVAILABLE_COLUMNS = ['anime_id', 'anime_russian', 'anime_english', 'author', 'kind', 'url', 'language', 'quality'];
     const columns = req.query.column.split(' ');
     const anime_id = req.query.anime_id;
     const filter = req.query.filter;
@@ -420,15 +420,18 @@ router.get('/unique', async (req, res, next) => {
         return uniq;
     };
 
-    if (!columns || !anime_id || !columns.every(value => AVAILABLE_COLUMNS.includes(value)))
+    if (!columns || !columns.every(value => AVAILABLE_COLUMNS.includes(value)))
         next(new ServerError(`Available columns: ${AVAILABLE_COLUMNS}`, 'Invalid required parameter', 400));
 
     let search_options = {
-        where: { anime_id: anime_id },
+        where: {},
         limit: limit === 'all' ? null : limit,
         offset: offset,
         attributes: [...columns, 'episode']
     };
+
+    if (anime_id)
+        search_options.where.anime_id = anime_id;
 
     if (episode)
         search_options.where.episode = episode;
