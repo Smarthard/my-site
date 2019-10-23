@@ -374,22 +374,13 @@ router.get('/unique/count', (req, res, next) => {
 router.get('/unique', async (req, res, next) => {
     const columns = req.query.column.split(' ');
     const anime_id = req.query.anime_id;
-    const filter = req.query.filter;
+    const filter = req.query.filter || '';
     const episode = req.query.episode;
     const limit = req.query.limit || 50;
     const offset = req.query.offset;
 
     const distinctValuesHandler = (values) => {
         let uniq = {};
-
-        if (filter) {
-            let expression = new RegExp(filter, 'i');
-
-            values = values.filter(val => {
-                return Object.keys(val)
-                    .some(key => val[key] ? expression.test(val[key].toString()) : "");
-            });
-        }
 
         values.forEach(value => {
             if (!uniq[value.episode])
@@ -428,6 +419,25 @@ router.get('/unique', async (req, res, next) => {
         offset: offset,
         attributes: [...columns, 'episode']
     };
+
+    if (filter.length > 0) {
+        let filters = {};
+
+        if (columns.length > 1) {
+            filters[Op.or] = {};
+            columns.forEach(column => {
+                filters[Op.or][column] = {
+                    [Op.substring]: filter
+                }
+            });
+        } else {
+            filters[columns[0]] = {
+                [Op.substring]: filter
+            }
+        }
+
+        search_options.where = filters;
+    }
 
     if (anime_id)
         search_options.where.anime_id = anime_id;
