@@ -1,4 +1,5 @@
 const ServerError = require('../types/ServerError');
+const UNIQ_COLUMNS = ['anime_id', 'anime_russian', 'anime_english', 'author', 'kind', 'url', 'language', 'quality'];
 
 let Op = require('sequelize').Op;
 let express = require('express');
@@ -301,14 +302,13 @@ router.get('/search', async (req, res) => {
  *              description: Server fails on some operation, try later
  */
 router.get('/unique/count', (req, res, next) => {
-    const AVAILABLE_COLUMNS = ['anime_id', 'anime_russian', 'anime_english', 'author', 'kind', 'url', 'language', 'quality'];
     const column = req.query.column;
     const anime_id = req.query.anime_id;
     const filter = req.query.filter;
     const episode = req.query.episode;
 
-    if (!column || !AVAILABLE_COLUMNS.includes(`${column}`.toString().toLowerCase()))
-        next(new ServerError(`Available columns: ${AVAILABLE_COLUMNS}`, 'Invalid required parameter', 400));
+    if (!column || !UNIQ_COLUMNS.includes(`${column}`.toString().toLowerCase()))
+        next(new ServerError(`Available columns: ${UNIQ_COLUMNS}`, 'Invalid required parameter', 400));
 
     let search_options = {
         plain: false,
@@ -372,7 +372,6 @@ router.get('/unique/count', (req, res, next) => {
  *              description: Server fails on some operation, try later
  */
 router.get('/unique', async (req, res, next) => {
-    const AVAILABLE_COLUMNS = ['anime_id', 'anime_russian', 'anime_english', 'author', 'kind', 'url', 'language', 'quality'];
     const columns = req.query.column.split(' ');
     const anime_id = req.query.anime_id;
     const filter = req.query.filter;
@@ -420,8 +419,8 @@ router.get('/unique', async (req, res, next) => {
         return uniq;
     };
 
-    if (!columns || !columns.every(value => AVAILABLE_COLUMNS.includes(value)))
-        next(new ServerError(`Available columns: ${AVAILABLE_COLUMNS}`, 'Invalid required parameter', 400));
+    if (!columns || !columns.every(value => UNIQ_COLUMNS.includes(value)))
+        next(new ServerError(`Available columns: ${UNIQ_COLUMNS}`, 'Invalid required parameter', 400));
 
     let search_options = {
         where: {},
