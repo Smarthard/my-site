@@ -413,6 +413,9 @@ router.get('/unique', async (req, res, next) => {
     if (!columns || !columns.every(value => UNIQ_COLUMNS.includes(value)))
         next(new ServerError(`Available columns: ${UNIQ_COLUMNS}`, 'Invalid required parameter', 400));
 
+    if (limit && limit === 'all' && !anime_id)
+        next(new ServerError('Please provide anime_id for unlimited querry', 'Invalid parameters', 400));
+
     let search_options = {
         where: {},
         limit: limit === 'all' ? null : limit,
@@ -427,12 +430,12 @@ router.get('/unique', async (req, res, next) => {
             filters[Op.or] = {};
             columns.forEach(column => {
                 filters[Op.or][column] = {
-                    [Op.substring]: filter
+                    [Op.iLike]: `%${filter}%`
                 }
             });
         } else {
             filters[columns[0]] = {
-                [Op.substring]: filter
+                [Op.iLike]: `%${filter}%`
             }
         }
 
