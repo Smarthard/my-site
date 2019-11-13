@@ -11,6 +11,27 @@ let ShikiVideos = require('../models').ShikiVideos;
 
 /* path /api/shikivideos/ */
 
+router.get('/contributions', (req, res, next) => {
+    const uploader = `${req.query.uploader || ''}`.split(' ');
+    let where = {};
+
+    if (uploader) {
+        if (uploader.length === 1 && !!uploader[0]) {
+            where.uploader = uploader[0];
+        } else if (uploader.length > 1) {
+            where[Op.or] = {};
+            where[Op.or]['uploader'] = [];
+            uploader.forEach(contributor => {
+                where[Op.or]['uploader'].push(contributor);
+            });
+        }
+    }
+
+    ShikiVideos.count({ where })
+        .then(value => res.status(200).send({ count: value }))
+        .catch(err => next(err));
+});
+
 /* CREATE */
 
 /**
@@ -218,10 +239,11 @@ router.get('/search', async (req, res) => {
     const author = req.query.author;
     const kind = req.query.kind;
     const language = req.query.lang;
-    const uploader = req.query.uploader;
+    const uploader = `${req.query.uploader || ''}`.split(' ');
 
     let sql_dyn_where = {};
     let sql_title_where = {};
+    let sql_uploader_where = {};
 
     if (title) {
         sql_title_where = {
@@ -232,11 +254,22 @@ router.get('/search', async (req, res) => {
         }
     }
 
+    if (uploader) {
+        if (uploader.length === 1 && !!uploader[0]) {
+            sql_uploader_where.uploader = uploader[0];
+        } else if (uploader.length > 1) {
+            sql_uploader_where[Op.or] = {};
+            sql_uploader_where[Op.or]['uploader'] = [];
+            uploader.forEach(contributor => {
+                sql_uploader_where[Op.or]['uploader'].push(contributor);
+            });
+        }
+    }
+
     if (author) sql_dyn_where.author = author;
     if (episode) sql_dyn_where.episode = episode;
     if (kind) sql_dyn_where.kind = kind;
     if (language) sql_dyn_where.language = language;
-    if (uploader) sql_dyn_where.uploader = uploader;
     if (quality) sql_dyn_where.quality = quality;
     if (limit) `${limit}`.toLocaleUpperCase() === 'ALL' ? limit = null : limit;
 
@@ -244,7 +277,8 @@ router.get('/search', async (req, res) => {
     let article = await ShikiVideos.findAll({
         where: [
                 sql_title_where,
-                sql_dyn_where
+                sql_dyn_where,
+                sql_uploader_where
         ],
         order: ['author'],
         limit: limit, offset: offset
