@@ -640,7 +640,7 @@ router.get('/:anime_id/length', (req, res) => {
             anime_id: anime_id
         }
     }).then(value => {
-        res.status(200).send({length: value});
+        res.status(200).send({length: value || 0});
     }).catch(err => {
         console.error(err);
         res.status(500);
