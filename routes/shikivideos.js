@@ -229,7 +229,7 @@ router.post('/', allowFor('database:shikivideos', 'database:shikivideos_create')
  *          500:
  *              description: Server fails on some operation, try later
  */
-router.get('/search', async (req, res) => {
+router.get('/search', async (req, res, next) => {
     const offset = req.query.offset || 0;
     let limit = req.query.limit || 10;
 
@@ -240,6 +240,8 @@ router.get('/search', async (req, res) => {
     const kind = req.query.kind;
     const language = req.query.lang;
     const uploader = `${req.query.uploader || ''}`.split(' ');
+    const order = `${req.query.order || 'id'}`;
+    const direction = `${req.query.direction}`.toLocaleUpperCase() === 'ASC' ? 'ASC' : 'DESC';
 
     let sql_dyn_where = {};
     let sql_title_where = {};
@@ -255,9 +257,12 @@ router.get('/search', async (req, res) => {
     }
 
     if (uploader) {
-        if (uploader.length === 1 && !!uploader[0]) {
-            sql_uploader_where.uploader = uploader[0];
-        } else if (uploader.length > 1) {
+        if (uploader.length === 1) {
+            switch (uploader[0]) {
+                case '': break;
+                default: sql_uploader_where.uploader = uploader[0];
+            }
+        } else {
             sql_uploader_where[Op.or] = {};
             sql_uploader_where[Op.or]['uploader'] = [];
             uploader.forEach(contributor => {
@@ -280,8 +285,10 @@ router.get('/search', async (req, res) => {
                 sql_dyn_where,
                 sql_uploader_where
         ],
-        order: ['author'],
-        limit: limit, offset: offset
+        order: [ [order, direction] ], limit, offset
+    }).catch(err => {
+        console.error(err);
+        next(new ServerError('Internal server error', 'Some unexpected behavior happened', 500))
     });
 
     if (article) {
