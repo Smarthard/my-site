@@ -7,7 +7,7 @@
     "migrate": "npx sequelize-cli db:migrate:undo:all && npx sequelize-cli db:migrate && npx sequelize-cli db:seed:all"
   },
   "dependencies": {
-    "bcrypt": "^3.0.6",
+    "bcrypt": "^3.0.7",
     "body-parser": "latest",
     "connect-ensure-login": "^0.1.1",
     "connect-pg-simple": "^6.0.1",
