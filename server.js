@@ -25,6 +25,7 @@ let users = require('./routes/users');
 let auth = require('./routes/authorization');
 let oauth = require('./routes/oauth');
 let status = require('./routes/status');
+let requests = require('./routes/requests');
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -60,6 +61,7 @@ app.use('/api/articles/', articles);
 app.use('/api/shikivideos/', shikivideos);
 app.use('/api/users/', users);
 app.use('/api/status', status);
+app.use('/api/requests', requests);
 app.use('/auth/', auth);
 app.use('/oauth/', oauth);
 app.use(/^\/api\/?$/i, (req, res) => {
