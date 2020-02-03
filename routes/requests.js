@@ -113,4 +113,34 @@ router.post(
     (req, res, next) => _reviewRequest(req, res, next, false)
 );
 
+router.post(
+    '/:id/revert',
+    middleware.allowFor('admin'),
+    async (req, res, next) => {
+        const id = req.params.id;
+
+        try {
+            const request = await Request.findOne({ where: { id }});
+            let model;
+
+            switch (request.type) {
+                case 'articles':
+                    model = Article;
+                    break;
+                case 'shikivideos':
+                    model = ShikiVideos;
+                    break;
+                default:
+                    return next();
+            }
+
+            model.update(request.old, { where: { id: request.target_id }});
+        } catch (e) {
+            return next(new ServerError('Cannot process your request', 'Internal Error', 500));
+        }
+
+        next();
+    },
+    (req, res, next) => _reviewRequest(req, res, next, false));
+
 module.exports = router;
