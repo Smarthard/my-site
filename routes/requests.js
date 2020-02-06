@@ -42,17 +42,21 @@ async function _reviewRequest(req, res, next, approved) {
     return res.status(200).send(patchedRequest);
 }
 
-router.post('/', async (req, res, next) => {
+async function _createRequest(req, res, next) {
     const type = req.query.type;
     const target_id = req.query.target_id || null;
-    const requester = req.body.requester;
     const request = req.body.request;
     const comment = req.body.comment;
+    let requester = req.body.requester;
     let old;
     let newRequest;
 
     if (!type || !requester || !request) {
         return next(new ServerError('Required parameters missing', 'Invalid required parameter', 400));
+    }
+
+    if (req.session.user && req.session.user.id) {
+        requester = req.session.user.id;
     }
 
     try {
@@ -70,6 +74,20 @@ router.post('/', async (req, res, next) => {
     }
 
     return res.status(201).send(newRequest);
+}
+
+function _checkRequester() {
+    return (req, res, next) => {
+        if (isNaN(req.body.requester)) {
+            return _createRequest(req, res, next);
+        } else {
+            next();
+        }
+    }
+}
+
+router.post('/', _checkRequester(), middleware.allowFor('user', 'admin'), (req, res, next) => {
+    return _createRequest(req, res, next);
 });
 
 router.get('/', async (req, res, next) => {
