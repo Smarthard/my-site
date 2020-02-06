@@ -47,6 +47,7 @@ router.post('/', async (req, res, next) => {
     const target_id = req.query.target_id || null;
     const requester = req.body.requester;
     const request = req.body.request;
+    const comment = req.body.comment;
     let old;
     let newRequest;
 
@@ -63,7 +64,7 @@ router.post('/', async (req, res, next) => {
                 old = await ShikiVideos.findOne({ where: { id: target_id }});
                 break;
         }
-        newRequest = await Request.create({ type, target_id, requester, request, old });
+        newRequest = await Request.create({ type, target_id, requester, request, old, comment });
     } catch (e) {
         return next(new ServerError('Cannot insert new record', 'Internal Error', 500));
     }

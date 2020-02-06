@@ -4,6 +4,7 @@ module.exports = (sequelize, DataTypes) => {
     type: DataTypes.STRING,
     target_id: DataTypes.INTEGER,
     requester: DataTypes.STRING,
+    comment: DataTypes.STRING,
     request: DataTypes.JSON,
     old: DataTypes.JSON,
     approved: DataTypes.BOOLEAN,
