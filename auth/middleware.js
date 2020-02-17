@@ -33,7 +33,7 @@ function allowFor(...scopes) {
 
             return AccessTokens.findOne({ where: { token: access_token }})
                 .then(access => {
-                    if (access.token !== access_token)
+                    if (!access || access.token !== access_token)
                         return next(new ServerError('Token is invalid or expired or granted to another client', 'Unauthorized', 401));
 
                     if (Date.now() > access.expires)
