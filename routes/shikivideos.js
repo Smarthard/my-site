@@ -1,3 +1,4 @@
+const axios = require('axios');
 const ServerError = require('../types/ServerError');
 const UNIQ_COLUMNS = ['anime_id', 'anime_russian', 'anime_english', 'author', 'kind', 'url', 'language', 'quality'];
 
@@ -10,6 +11,15 @@ let allowFor = require('../auth/middleware').allowFor;
 let ShikiVideos = require('../models').ShikiVideos;
 
 /* path /api/shikivideos/ */
+
+router.get('/release-notes/:version', (req, res, next) => {
+    const version = req.params.version;
+
+    axios.get(`https://addons.mozilla.org/ru/firefox/addon/shikicinema/versions/${version}/updateinfo`)
+        .then(res => res.data)
+        .then(notes => res.send(notes))
+        .catch(err => next(err));
+});
 
 router.get('/contributions', (req, res, next) => {
     const uploader = `${req.query.uploader || ''}`.split(' ');

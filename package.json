@@ -8,6 +8,7 @@
     "test-migrate": "npx sequelize db:migrate:undo:all && npx sequelize db:migrate && npx sequelize db:seed:all"
   },
   "dependencies": {
+    "axios": "^0.19.2",
     "bcrypt": "^3.0.7",
     "body-parser": "latest",
     "connect-ensure-login": "^0.1.1",
