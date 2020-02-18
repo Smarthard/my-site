@@ -18,7 +18,7 @@ router.get('/release-notes/:version', (req, res, next) => {
     axios.get(`https://addons.mozilla.org/ru/firefox/addon/shikicinema/versions/${version}/updateinfo`)
         .then(res => res.data)
         .then(notes => res.send(notes))
-        .catch(err => next(err));
+        .catch(() => res.status(404).send());
 });
 
 router.get('/contributions', (req, res, next) => {
