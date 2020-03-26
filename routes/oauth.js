@@ -1,5 +1,7 @@
 const ServerError = require('../types/ServerError');
 
+const axios = require('axios');
+const bcrypt = require('bcrypt');
 let express = require('express');
 let router = express.Router();
 let uuid = require('uuid/v4');
@@ -440,6 +442,54 @@ router.all('/token', (req, res, next) => {
                 console.error(err);
 
                 return next(new ServerError('An error occurred during operation', 'Internal Error', 500));
+            })
+    }
+
+    if (grant_type === 'shikimori_token') {
+        const shikimori_token = req.body.shikimori_token;
+        const headers = { 'Authorization': `Bearer ${shikimori_token}` };
+
+        Promise.all([
+            axios.get('https://shikimori.one/api/users/whoami', { headers })
+                .then(res => res.data)
+                .catch(() => null),
+            Clients.findOne({where: {client_id: client_id, client_secret: client_secret}})
+        ])
+            .then(async ([shikiuser, client]) => {
+                console.debug(shikiuser);
+
+                if (!shikiuser || !shikiuser.id)
+                    return next(new ServerError('Cannot get user with this token', 'Shikimori auth failed', 403));
+
+                if (!client)
+                    return next(new ServerError('Invalid client credentials', 'Invalid request', 400));
+
+                try {
+                    let tokens;
+                    let user = await Users.findOne({ where: { shikimori_id: `${shikiuser.id}` } })
+                        .catch(() => null);
+
+                    if (!user)
+                        user = await Users.create({
+                            shikimori_id: shikiuser.id,
+                            login: shikiuser.nickname,
+                            name: shikiuser.nickname,
+                            password: bcrypt.hashSync(shikimori_token, 10),
+                            email: `https://shikimori.one/${shikiuser.nickname}`,
+                            scopes: [ 'database:shikivideos' ]
+                        });
+
+                    tokens = await generateTokens(client_id, user.id, scopes, { refresh_token: true });
+                    return res.status(200).send(tokens);
+                } catch (err) {
+                    console.error(err);
+
+                    return next(err);
+                }
+            })
+            .catch((err) => {
+                console.error(err);
+                return next(new ServerError('An error occurred during operation', 'Internal Error', 500))
             })
     }
 });
