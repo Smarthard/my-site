@@ -18,14 +18,10 @@ let AuthCodes = require('../models').AuthCode;
 let AccessTokens = require('../models').AccessToken;
 let RefreshTokens = require('../models').RefreshToken;
 
-function getHostName(url) {
-    let match = url.match(/(?:https?:\/\/)(www[0-9]?\.)?(.[^\/:]+)/i);
-    if (match != null && match.length > 2 && typeof match[2] === 'string' && match[2].length > 0) {
-        return match[2];
-    }
-    else {
-        return null;
-    }
+function getHostName(uri) {
+    let url = /^http/i.test(`${uri}`) ? url : `http://${uri}`;
+
+    return new URL(url).hostname;
 }
 
 function generateTokens(client_id, user_id, scopes, optional) {
@@ -138,10 +134,10 @@ router.post('/register', middleware.allowFor('user', 'admin'), (req, res, next) 
     if (!client_name || client_name.length < 4 || client_name.length > 32)
         return next(new ServerError('Invalid parameter "client_name"', 'Invalid required parameter', 400));
 
-    if (!redirect_uri || redirect_uri > 2000 || getHostName(redirect_uri) === null)
+    if (!redirect_uri || redirect_uri > 2000 || !/urn:ietf:wg:oauth:2.0:oob/.test(redirect_uri) && getHostName(redirect_uri) === null)
         return next(new ServerError('Invalid parameter "redirect_uri', 'Invalid required parameter', 400));
 
-    if (!redirect_uri.startsWith('http'))
+    if (!redirect_uri.startsWith('http') && !/urn:ietf:wg:oauth:2.0:oob/.test(redirect_uri))
         redirect_uri = 'http://' + redirect_uri;
 
     if (scopes && scopes.length > 1024)
@@ -261,7 +257,12 @@ router.post('/authorize', (req, res, next) => {
                     scopes: scopes,
                     expires: Date.now() + AUTH_CODE_LIFE
                 }).then(authcode => {
-                    res.redirect(`${redirect_uri}?code=${authcode.auth_code}&state=${state}`)
+                    if (/urn:ietf:wg:oauth:2.0:oob/.test(redirect_uri)) {
+                        console.warn('here');
+                        res.send({ code: authcode.auth_code, state })
+                    } else {
+                        res.redirect(`${redirect_uri}?code=${authcode.auth_code}&state=${state}`)
+                    }
                 })
             } else {
                 return next(new ServerError('Invalid user credentials', 'Unauthorized', 401));
@@ -366,7 +367,7 @@ router.all('/token', (req, res, next) => {
                     return next(new ServerError('Authorization Code expired', 'Unauthorized', 401));
                 }
 
-                if (getHostName(redirect_uri) !== getHostName(client.redirect_uri))
+                if (!/urn:ietf:wg:oauth:2.0:oob/.test(redirect_uri) && getHostName(redirect_uri) !== getHostName(client.redirect_uri))
                     return next(new ServerError('Redirect URI mismatch', 'Unauthorized', 401));
 
                 try {
