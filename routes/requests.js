@@ -11,27 +11,30 @@ async function _reviewRequest(req, res, next, approved) {
     const reviewer_id = req.session.user.id;
     const feedback = req.body.feedback;
     const reviewed = new Date();
-    let patchedRequest;
+    let patchRequest;
 
     if (isNaN(id)) {
         return next(new ServerError('Request id should be a number', 'Invalid required parameter', 400));
     }
 
     try {
-        patchedRequest = await Request
+        patchRequest = await Request
             .update({ approved, reviewer_id, feedback, reviewed }, { where: { id } })
             .then(() => Request.findOne({ where: { id }}));
 
         if (approved) {
-            const request = patchedRequest.request;
-            const where = { id: patchedRequest.target_id };
+            const request = patchRequest.request;
+            const where = { id: patchRequest.target_id };
 
-            switch (patchedRequest.type) {
+            switch (patchRequest.type) {
                 case 'articles':
                     Article.update(request, { where });
                     break;
                 case 'shikivideos':
                     ShikiVideos.update(request, { where });
+                    break;
+                case 'shikivideos_delete':
+                    ShikiVideos.destroy({ where });
                     break;
             }
         }
@@ -39,7 +42,7 @@ async function _reviewRequest(req, res, next, approved) {
         return next(new ServerError('Cannot update record', 'Internal Error', 500))
     }
 
-    return res.status(200).send(patchedRequest);
+    return res.status(200).send(patchRequest);
 }
 
 async function _createRequest(req, res, next) {
