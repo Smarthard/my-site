@@ -143,6 +143,10 @@ router.post('/', allowFor('database:shikivideos', 'database:shikivideos_create')
         return next(new ServerError('URL is invalid', 'Invalid required parameter', 400));
     }
 
+    if (!req.uploader_id) {
+        return next(new ServerError('Invalid upload token', 'Unauthorized', 401));
+    }
+
     try {
         let existing_url = await ShikiVideos.findOne({ where: { url: url }});
 

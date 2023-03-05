@@ -22,11 +22,6 @@ function allowFor(...scopes) {
     return function(req, res, next) {
         const authorization = req.headers.authorization || "";
 
-        // request with session cookies
-        if (req.session.user) {
-            return next();
-        }
-
         // request with bearer token
         if (authorization.toLowerCase().startsWith('bearer')) {
             let access_token = authorization.replace(/bearer\s+/i, '');
@@ -58,7 +53,12 @@ function allowFor(...scopes) {
                 .catch(err => next(err));
         }
 
-        return next(new ServerError('Token is invalid or expired or granted to another client', 'Unauthorized', 401));
+        // request with session cookies
+        if (req.session.user) {
+            return next();
+        }
+
+        return next(new ServerError('You are not authorized to access this', 'Unauthorized', 401));
     }
 }
 
