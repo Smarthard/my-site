@@ -132,10 +132,16 @@ router.post('/', allowFor('database:shikivideos', 'database:shikivideos_create')
     const language = req.query.language;
     const quality = req.query.quality || null;
     const author = req.query.author || null;
-    const uploader = req.query.uploader;
+    const uploader = req.uploader_id;
 
-    if (!url || !anime_id || !episode || !kind || !language || !uploader)
+    if (!url || !anime_id || !episode || !kind || !language)
         return next(new ServerError('Required parameters missing', 'Invalid required parameter', 400));
+
+    try {
+        new URL(url);
+    } catch (e) {
+        return next(new ServerError('URL is invalid', 'Invalid required parameter', 400));
+    }
 
     try {
         let existing_url = await ShikiVideos.findOne({ where: { url: url }});

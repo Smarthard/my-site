@@ -39,6 +39,9 @@ function allowFor(...scopes) {
                     if (Date.now() > access.expires)
                         return next(new ServerError('Token is invalid or expired or granted to another client', 'Unauthorized', 401));
 
+                    // uploader_id will be accessible from further handlers
+                    req.uploader_id = access.user_id;
+
                     // TODO: optimize this
                     let isAllowed = false;
                     access.scopes.forEach(scope => {
