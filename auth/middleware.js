@@ -1,9 +1,9 @@
+const bcrypt = require('bcrypt');
+
 const ServerError = require('../types/ServerError');
-
-let bcrypt = require('bcrypt');
-
-let AccessTokens = require('../models').AccessToken;
-let Scope = require('./Scope').Scope;
+const AccessTokens = require('../models').AccessToken;
+const Scope = require('./Scope').Scope;
+const User  = require('../models').User;
 
 function destroyInvalidCookies(req, res, next) {
     if (req.session.cookies && !req.session.user) {
@@ -27,7 +27,7 @@ function allowFor(...scopes) {
             let access_token = authorization.replace(/bearer\s+/i, '');
 
             return AccessTokens.findOne({ where: { token: access_token }})
-                .then(access => {
+                .then(async (access) => {
                     if (!access || access.token !== access_token)
                         return next(new ServerError('Token is invalid or expired or granted to another client', 'Unauthorized', 401));
 
@@ -35,7 +35,8 @@ function allowFor(...scopes) {
                         return next(new ServerError('Token is invalid or expired or granted to another client', 'Unauthorized', 401));
 
                     // uploader_id will be accessible from further handlers
-                    req.uploader_id = access.user_id;
+                    const user = await User.findOne({ where: { id: access.user_id }});
+                    req.uploader_id = user.shikimori_id;
 
                     // TODO: optimize this
                     let isAllowed = false;
