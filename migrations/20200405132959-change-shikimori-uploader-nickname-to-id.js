@@ -3,7 +3,7 @@ const axios = require('axios');
 const ShikiVideos = require('../models').ShikiVideos;
 
 function getShikimoriUserId(username) {
-  const uri = encodeURI(`https://shikimori.one/api/users/${username}`);
+  const uri = encodeURI(`https://shikimori.me/api/users/${username}`);
   const params = { is_nickname: 1 };
   const headers = { 'User-Agent': 'Shikicinema DB; smarthard.net; parsing legacy uploaders nicknames' };
 
@@ -22,7 +22,7 @@ function getShikimoriUserId(username) {
         return user.id
       })
       .catch(() => {
-        console.error(`[Migration log] '${username}' not found, try: https://shikimori.one/${encodeURI(username)}`);
+        console.error(`[Migration log] '${username}' not found, try: https://shikimori.me/${encodeURI(username)}`);
         return username;
       });
 }

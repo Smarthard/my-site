@@ -450,14 +450,12 @@ router.all('/token', (req, res, next) => {
         const headers = { 'Authorization': `Bearer ${shikimori_token}` };
 
         Promise.all([
-            axios.get('https://shikimori.one/api/users/whoami', { headers })
+            axios.get('https://shikimori.me/api/users/whoami', { headers })
                 .then(res => res.data)
                 .catch(() => null),
             Clients.findOne({where: {client_id: client_id, client_secret: client_secret}})
         ])
             .then(async ([shikiuser, client]) => {
-                console.debug(shikiuser);
-
                 if (!shikiuser || !shikiuser.id)
                     return next(new ServerError('Cannot get user with this token', 'Shikimori auth failed', 403));
 
@@ -475,7 +473,7 @@ router.all('/token', (req, res, next) => {
                             login: shikiuser.nickname,
                             name: shikiuser.nickname,
                             password: bcrypt.hashSync(shikimori_token, 10),
-                            email: `https://shikimori.one/${shikiuser.nickname}`,
+                            email: `https://shikimori.me/${shikiuser.nickname}`,
                             scopes: [ 'database:shikivideos' ]
                         });
 

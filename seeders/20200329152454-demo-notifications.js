@@ -9,7 +9,7 @@ module.exports = {
           name: 'Довольно таки длинное название для уведомления',
           html: 'Ну, что сказать, HTML хранить в базе - <b>это норма</b>' +
               '<p>Зацени, еще и ссылку на ' +
-              '<a class="shc-links" href="https://shikimori.one/" target="_blank">шикимори</a>' +
+              '<a class="shc-links" href="https://shikimori.me/" target="_blank">шикимори</a>' +
               ' можно вставить</p>'
         }),
         createdAt: new Date(1585414406348),
