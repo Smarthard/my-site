@@ -8,7 +8,12 @@ let uuid = require('uuid/v4');
 let shortid = require('shortid');
 let TokenGenerator = require('uuid-token-generator');
 
-let {AUTH_CODE_LIFE, ACCESS_TOKEN_LIFE, REFRESH_TOKEN_LIFE} = require('../config/auth');
+const {
+    AUTH_CODE_LIFE,
+    ACCESS_TOKEN_LIFE,
+    REFRESH_TOKEN_LIFE,
+    SHIKIMORI_DOMAIN,
+} = require('../config/auth');
 let middleware = require("../auth/middleware");
 
 let tokens = new TokenGenerator(TokenGenerator.BASE62, 256);
@@ -446,11 +451,12 @@ router.all('/token', (req, res, next) => {
     }
 
     if (grant_type === 'shikimori_token') {
+        const shikimori_domain = SHIKIMORI_DOMAIN;
         const shikimori_token = req.body.shikimori_token;
         const headers = { 'Authorization': `Bearer ${shikimori_token}` };
 
         Promise.all([
-            axios.get('https://shikimori.me/api/users/whoami', { headers })
+            axios.get(`${shikimori_domain}/api/users/whoami`, { headers })
                 .then(res => res.data)
                 .catch(() => null),
             Clients.findOne({where: {client_id: client_id, client_secret: client_secret}})
@@ -473,7 +479,7 @@ router.all('/token', (req, res, next) => {
                             login: shikiuser.nickname,
                             name: shikiuser.nickname,
                             password: bcrypt.hashSync(shikimori_token, 10),
-                            email: `https://shikimori.me/${shikiuser.nickname}`,
+                            email: `${shikimori_domain}/${shikiuser.nickname}`,
                             scopes: [ 'database:shikivideos' ]
                         });
 

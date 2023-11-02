@@ -6,5 +6,6 @@ module.exports = Object.freeze({
     ACCESS_TOKEN_LIFE: 60 * 60 * 1000,          // 1h
     REFRESH_TOKEN_LIFE: 24 * 60 * 60 * 1000,    // 1d
     SESSION_SECRET: isProduction ? process.env.SESSION_SECRET : 'secret',
-    COOKIE_SECRET: isProduction ? process.env.COOKIE_SECRET : 'cookie_secret'
+    COOKIE_SECRET: isProduction ? process.env.COOKIE_SECRET : 'cookie_secret',
+    SHIKIMORI_DOMAIN: process.env.SHIKIMORI_DOMAIN || 'https://shikimori.one',
 });
