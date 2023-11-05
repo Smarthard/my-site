@@ -21,7 +21,7 @@
     "express": "~4.17.1",
     "express-session": "^1.17.0",
     "helmet": "^3.22.0",
-    "moment": "^2.24.0",
+    "moment": "^2.29.4",
     "moment-duration-format": "^2.3.2",
     "morgan": "~1.10.0",
     "pg": "^7.18.2",
