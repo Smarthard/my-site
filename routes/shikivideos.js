@@ -124,7 +124,7 @@ router.get('/contributions', (req, res, next) => {
  */
 router.post('/', allowFor('database:shikivideos', 'database:shikivideos_create'), async (req, res, next) => {
     const url = req.query.url;
-    const anime_id = req.query.anime_id;
+    const anime_id = Number(req.query.anime_id);
     const anime_english = req.query.anime_english || "";
     const anime_russian = req.query.anime_russian || "";
     const episode = req.query.episode;
@@ -137,6 +137,10 @@ router.post('/', allowFor('database:shikivideos', 'database:shikivideos_create')
     if (!url || !anime_id || !episode || !kind || !language)
         return next(new ServerError('Required parameters missing', 'Invalid required parameter', 400));
 
+    if (Number.isNaN(anime_id) || anime_id <= 0) {
+        return next(new ServerError('Anime ID should be a positive number'), 400);
+    }
+
     try {
         new URL(url);
     } catch (e) {
@@ -148,29 +152,25 @@ router.post('/', allowFor('database:shikivideos', 'database:shikivideos_create')
     }
 
     try {
-        let existing_url = await ShikiVideos.findOne({ where: { url: url }});
+        const existing_url = await ShikiVideos.findOne({ where: { url }});
 
         if (existing_url)
             return res.status(400).send({ message: 'Record with this url already exists' });
 
-        ShikiVideos.create({
-            url: url,
-            anime_id: anime_id,
-            anime_english: anime_english,
-            anime_russian: anime_russian,
-            episode: episode,
-            kind: kind,
-            language: language,
-            quality: quality,
-            author: author,
-            uploader: uploader
-        })
-            .then(record => {
-                if (!record)
-                    throw new ServerError('Cannot insert new record', 'Internal Error', 500);
+        const record = await ShikiVideos.create({
+            url,
+            anime_id,
+            anime_english,
+            anime_russian,
+            episode,
+            kind,
+            language,
+            quality,
+            author,
+            uploader,
+        });
 
-                return res.status(201).send(record);
-            })
+        return res.status(201).send(record);
     } catch (err) {
         console.error(err);
 
