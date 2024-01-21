@@ -127,7 +127,7 @@ router.post('/', allowFor('database:shikivideos', 'database:shikivideos_create')
     const anime_id = Number(req.query.anime_id);
     const anime_english = req.query.anime_english || "";
     const anime_russian = req.query.anime_russian || "";
-    const episode = req.query.episode;
+    const episode = Number(req.query.episode);
     const kind = req.query.kind;
     const language = req.query.language;
     const quality = req.query.quality || null;
@@ -138,7 +138,11 @@ router.post('/', allowFor('database:shikivideos', 'database:shikivideos_create')
         return next(new ServerError('Required parameters missing', 'Invalid required parameter', 400));
 
     if (Number.isNaN(anime_id) || anime_id <= 0) {
-        return next(new ServerError('Anime ID should be a positive number'), 400);
+        return next(new ServerError('Parameter "anime_id" should be a positive number'), 400);
+    }
+
+    if (Number.isNaN(episode) || episode <= 0) {
+        return next(new ServerError('Parameter "episode" should be a positive number'), 400);
     }
 
     try {
