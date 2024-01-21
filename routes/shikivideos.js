@@ -134,15 +134,36 @@ router.post('/', allowFor('database:shikivideos', 'database:shikivideos_create')
     const author = req.query.author || null;
     const uploader = req.uploader_id;
 
-    if (!url || !anime_id || !episode || !kind || !language)
-        return next(new ServerError('Required parameters missing', 'Invalid required parameter', 400));
+    if (!kind) {
+        return next(
+            new ServerError('Parameter "kind" should be one of ["озвучка", "субтитры", "оригинал"]'),
+            'Invalid required parameter',
+            400
+        );
+    }
+
+    if (!language) {
+        return next(
+            new ServerError('Parameter "language" should be a non-empty string'),
+            'Invalid required parameter',
+            400
+        );
+    }
 
     if (Number.isNaN(anime_id) || anime_id <= 0) {
-        return next(new ServerError('Parameter "anime_id" should be a positive number'), 400);
+        return next(
+            new ServerError('Parameter "anime_id" should be a positive number'),
+            'Invalid required parameter',
+            400
+        );
     }
 
     if (Number.isNaN(episode) || episode <= 0) {
-        return next(new ServerError('Parameter "episode" should be a positive number'), 400);
+        return next(
+            new ServerError('Parameter "episode" should be a positive number'),
+            'Invalid required parameter',
+            400
+        );
     }
 
     try {
