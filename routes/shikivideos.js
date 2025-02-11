@@ -130,7 +130,7 @@ router.post('/', allowFor('database:shikivideos', 'database:shikivideos_create')
     const episode = Number(req.query.episode);
     const kind = req.query.kind;
     const language = req.query.language;
-    const quality = req.query?.quality?.trim()?.toLocaleLowerCase() || 'unknown';
+    const quality = req.query.quality || 'unknown';
     const author = req.query.author || null;
     const uploader = req.uploader_id;
 
@@ -190,7 +190,7 @@ router.post('/', allowFor('database:shikivideos', 'database:shikivideos_create')
             episode,
             kind,
             language,
-            quality,
+            quality: quality.trim().toLocaleLowerCase(),
             author,
             uploader,
         });
